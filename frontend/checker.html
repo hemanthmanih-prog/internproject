@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checker Portal — Loan Authorization & Four-Eyes Sanction | ApexLoan ®</title>
+  <meta name="description" content="Checker portal for reviewing, approving, rejecting, and disbursing loan applications under the Four-Eyes Principle.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/stakent.css">
+  <script>
+    // Strict Auth Guard: Immediately redirect before page render if unauthenticated
+    (function() {
+      const token = localStorage.getItem('apex_jwt_token');
+      const rawUser = localStorage.getItem('apex_user');
+      if (!token || !rawUser) {
+        sessionStorage.setItem('auth_error_message', '🔒 Please sign in with Checker credentials to access the Checker Desk.');
+        sessionStorage.setItem('auth_target_url', window.location.pathname);
+        window.location.replace('auth.html');
+        return;
+      }
+      try {
+        const u = JSON.parse(rawUser);
+        const role = (u.role || '').toUpperCase();
+        const email = (u.email || '').toLowerCase();
+        // Only hemanthmanih@gmail.com with CHECKER/OFFICER/ADMIN role can access
+        if (role !== 'CHECKER' && role !== 'OFFICER' && role !== 'ADMIN') {
+          sessionStorage.setItem('auth_error_message', '⛔ Access Denied: You are signed in as a Maker. Checker Authorization Desk is restricted.');
+          window.location.replace('maker.html');
+          return;
+        }
+        if (email !== 'hemanthmanih@gmail.com') {
+          localStorage.removeItem('apex_jwt_token');
+          localStorage.removeItem('apex_user');
+          sessionStorage.setItem('auth_error_message', '⛔ Access Denied: Only the authorized Checker (hemanthmanih@gmail.com) can access this page.');
+          window.location.replace('auth.html');
+          return;
+        }
+      } catch(e) {
+        window.location.replace('auth.html');
+      }
+    })();
+  </script>
+  <style>
+    .quick-chip {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--st-border);
+      color: var(--st-text-secondary);
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: var(--st-radius-sm);
+      cursor: pointer;
+      transition: all var(--st-transition-fast);
+      font-family: inherit;
+    }
+    .quick-chip:hover {
+      background: rgba(244, 63, 94, 0.15);
+      border-color: rgba(244, 63, 94, 0.4);
+      color: #fb7185;
+    }
+    .quick-chip.chip-emerald:hover {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    /* Track Stepper */
+    .track-stepper {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      margin: 24px 0 28px;
+    }
+    .track-stepper::before {
+      content: '';
+      position: absolute;
+      top: 18px;
+      left: 30px;
+      right: 30px;
+      height: 2px;
+      background: #171b2b;
+      z-index: 1;
+    }
+    .track-step {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    .track-step-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #121524;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--st-text-muted);
+      transition: all 0.3s ease;
+    }
+    .track-step.done .track-step-circle {
+      background: var(--st-green);
+      border-color: var(--st-green);
+      color: #fff;
+      box-shadow: 0 0 16px var(--st-green-glow);
+    }
+    .track-step.current .track-step-circle {
+      background: var(--st-purple-gradient);
+      border-color: var(--st-purple-light);
+      color: #fff;
+      box-shadow: 0 0 18px var(--st-purple-glow);
+    }
+    .track-step-text {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--st-text-muted);
+      text-align: center;
+    }
+    .track-step.done .track-step-text,
+    .track-step.current .track-step-text {
+      color: #fff;
+    }
+
+    /* Timeline Items */
+    .track-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      padding-left: 20px;
+    }
+    .track-timeline::before {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .timeline-item {
+      position: relative;
+      background: rgba(14, 18, 32, 0.7);
+      border: 1px solid var(--st-border);
+      border-radius: var(--st-radius-md);
+      padding: 12px 16px;
+    }
+    .timeline-dot {
+      position: absolute;
+      left: -20px;
+      top: 18px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--st-purple);
+      box-shadow: 0 0 8px var(--st-purple-glow);
+    }
+    .timeline-item.active .timeline-dot {
+      background: var(--st-green);
+      box-shadow: 0 0 8px var(--st-green-glow);
+    }
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .timeline-title {
+      font-weight: 700;
+      color: #fff;
+      font-size: 0.88rem;
+    }
+    .timeline-time {
+      font-size: 0.74rem;
+      color: var(--st-text-muted);
+    }
+    .timeline-comment {
+      font-size: 0.82rem;
+      color: var(--st-text-secondary);
+    }
+
+    .checker-view-switcher-btn {
+      padding: 10px 18px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      border-radius: var(--st-radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s ease;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--st-text-secondary);
+    }
+    .checker-view-switcher-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .checker-view-switcher-btn.active-view {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--st-green);
+      color: #34d399;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
+    }
+  </style>
+</head>
+<body class="stakent-body" data-roles="CHECKER,OFFICER,ADMIN">
+
+  <div class="st-layout">
+
+    <!-- ==========================================
+         LEFT SIDEBAR
+         ========================================== -->
+    <aside class="st-sidebar" id="appSidebar">
+      <!-- Brand Logo & Switcher -->
+      <div class="st-brand">
+        <div class="st-brand-left">
+          <div class="st-logo-icon">⚡</div>
+          <div>
+            <div class="st-brand-title">ApexLoan <span class="st-brand-reg">®</span></div>
+            <div class="st-brand-sub">Checker Sanction Desk</div>
+          </div>
+        </div>
+        <button class="st-brand-selector" title="Switch Branch" onclick="showToast('Active Node: ApexLoan Production Node')">⇅</button>
+      </div>
+
+      <!-- Segment Switch -->
+      <div class="st-segment-switch">
+        <button class="st-segment-btn active" id="segBtn1" onclick="switchCheckerView('queue')">Sanction Queue</button>
+        <button class="st-segment-btn" id="segBtn2" onclick="switchCheckerView('tracker')">Maker Audit</button>
+      </div>
+
+      <!-- Main Navigation Menu -->
+      <nav class="st-nav-menu" id="appNavMenu">
+        <!-- Role-filtered nav injected at runtime -->
+      </nav>
+
+      <!-- Active Proposals Collapsible List -->
+      <div class="st-section-title">
+        <div style="display: flex; align-items: center;">
+          <span>Recent Proposals</span>
+          <span class="st-count-pill" id="activeCountPill">0</span>
+        </div>
+        <button style="color: var(--st-text-muted); font-size: 0.75rem;">▲</button>
+      </div>
+
+      <div class="st-active-list" id="sidebarActiveList">
+        <!-- Rendered via stakent.js from MySQL -->
+      </div>
+
+      <!-- Bottom Card -->
+      <div class="st-sidebar-bottom">
+        <div class="st-super-card" onclick="window.location.href='checker.html'">
+          <div class="st-super-icon">🛡️</div>
+          <div class="st-super-text">
+            <h5>Four-Eyes Protocol</h5>
+            <p>Checker Dual Authorization</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================
+         MAIN VIEWPORT
+         ========================================== -->
+    <main class="st-main">
+
+      <!-- Top Header Navigation -->
+      <header class="st-header">
+        <div class="st-header-left">
+          <button class="st-menu-btn" id="mobileMenuBtn" aria-label="Toggle Navigation">☰</button>
+
+          <!-- User Profile Chip -->
+          <div class="st-profile-chip" id="userProfileChip" onclick="logout()" title="Click to Sign Out">
+            <div class="st-profile-avatar" id="headerAvatar" style="background: linear-gradient(135deg, #10b981, #06b6d4);">VV</div>
+            <div class="st-profile-info">
+              <span class="st-profile-tag" id="headerTag">@checker</span>
+              <span class="st-pro-tag" id="headerRole">CHECKER</span>
+              <span class="st-profile-name" id="headerName">Victoria Vance</span>
+            </div>
+          </div>
+
+          <!-- Rounded Action Button: Sanction ⚖️ (Stakent white pill) -->
+          <a href="#queue" class="st-btn-deposit" style="text-decoration: none;" onclick="switchCheckerView('queue');">
+            <span>Sanction</span>
+            <span style="font-size: 0.85rem;">⚖️</span>
+          </a>
+        </div>
+
+        <div class="st-header-right">
+          <!-- Live Sync Toggle Button -->
+          <button class="btn btn-secondary btn-sm" id="liveSyncBtn" onclick="toggleLiveSync()" style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; border-color: rgba(16, 185, 129, 0.4); color: #34d399;">
+            <span id="liveSyncDot" style="width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 6px #34d399;"></span>
+            <span id="liveSyncText">Live Sync</span>
+          </button>
+
+          <a href="checker.html" class="st-icon-btn" title="Pending Notifications" style="text-decoration: none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="st-badge-dot" id="headerBadgeCount">2</span>
+          </a>
+
+          <div class="st-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" placeholder="Search by Loan ID or Maker ID..." id="headerSearchInput" onkeydown="if(event.key==='Enter') { switchCheckerView('tracker'); executeTrackerSearch(this.value.trim()); }">
+            <kbd>⌘</kbd>
+          </div>
+
+          <button class="st-btn-settings" onclick="logout()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <div class="st-content">
+
+        <!-- Access Guard (if not authenticated) -->
+        <div id="accessGuard" style="display: none; padding: 40px; text-align: center; background: rgba(16, 20, 34, 0.75); border: 1px solid var(--st-border); border-radius: var(--st-radius-xl); margin-bottom: 24px;">
+          <div style="font-size: 3rem; margin-bottom: 12px;">🛡️</div>
+          <h2 style="color: #fff; font-size: 1.5rem; margin-bottom: 8px;">Checker Authorization Required</h2>
+          <p style="color: var(--st-text-muted); font-size: 0.9rem; max-width: 500px; margin: 0 auto 20px;">
+            You need an authorized <strong>CHECKER</strong> role to approve, sanction, or reject originated loans under the Four-Eyes Principle.
+          </p>
+          <div style="display: flex; gap: 12px; justify-content: center;">
+            <a href="auth.html" class="st-btn-connect-wallet" style="text-decoration: none; padding: 10px 24px;">Sign In as Checker ➔</a>
+          </div>
+        </div>
+
+        <!-- Main Checker Interface -->
+        <div id="checkerInterface">
+
+          <!-- Role Banner -->
+          <div class="portal-role-banner checker" id="checkerRoleBanner" style="margin-bottom: 16px;">
+            <div class="role-banner-left">
+              <div class="role-icon-box checker">🛡️</div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <h3 style="color: #fff; font-size: 1.15rem; font-weight: 700; margin: 0;">Checker Authorization Desk</h3>
+                  <span class="tag-checker">FOUR-EYES ENFORCED</span>
+                </div>
+                <p style="font-size: 0.82rem; color: var(--st-text-secondary); margin: 3px 0 0;">
+                  Sanction authority to Approve, Reject, or Disburse. Track proposal progress & audit Maker staff origination records.
+                </p>
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button class="btn btn-secondary btn-sm" onclick="loadAllLoans()" style="border-color: var(--st-green); color: var(--st-green);">↻ Refresh</button>
+              <button class="btn btn-secondary btn-sm" onclick="logout()">Sign Out</button>
+            </div>
+          </div>
+
+          <!-- PRIMARY WORKFLOW VIEW SWITCHER (Queue vs Track Status & Maker Audit) -->
+          <div style="display: flex; gap: 10px; margin-bottom: 22px; background: rgba(14, 18, 32, 0.7); padding: 5px; border-radius: var(--st-radius-lg); border: 1px solid var(--st-border); width: fit-content; flex-wrap: wrap;">
+            <button id="btnSwitchQueue" class="checker-view-switcher-btn active-view" onclick="switchCheckerView('queue')">
+              <span>📋 Sanction & Approval Queue</span>
+              <span class="tab-badge" id="viewQueueBadge" style="background: rgba(16, 185, 129, 0.25); color: #34d399; margin-left: 4px;">0</span>
+            </button>
+            <button id="btnSwitchTracker" class="checker-view-switcher-btn" onclick="switchCheckerView('tracker')">
+              <span>🔍 Track Status & Maker Audit History</span>
+              <span class="st-beta-badge" style="background: rgba(6, 182, 212, 0.2); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4); margin-left: 4px;">Maker ID Track</span>
+            </button>
+          </div>
+
+          <!-- ==========================================
+               VIEW 1: SANCTION & APPROVAL QUEUE
+               ========================================== -->
+          <div id="queueSection">
+
+            <!-- KPI Summary Metrics Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 24px;">
+              <div class="stat-mini-card" style="padding: 18px 14px;">
+                <div class="stat-mini-num" id="statPending" style="color: #fbbf24; font-size: 1.8rem;">0</div>
+                <div class="stat-mini-label" style="margin-top: 4px;">Pending Approval</div>
+              </div>
+              <div class="stat-mini-card" style="padding: 18px 14px;">
+                <div class="stat-mini-num" id="statApproved" style="color: #34d399; font-size: 1.8rem;">0</div>
+                <div class="stat-mini-label" style="margin-top: 4px;">Sanctioned / Approved</div>
+              </div>
+              <div class="stat-mini-card" style="padding: 18px 14px;">
+                <div class="stat-mini-num" id="statDisbursed" style="color: #38bdf8; font-size: 1.8rem;">0</div>
+                <div class="stat-mini-label" style="margin-top: 4px;">Disbursed</div>
+              </div>
+              <div class="stat-mini-card" style="padding: 18px 14px;">
+                <div class="stat-mini-num" id="statRejected" style="color: #fb7185; font-size: 1.8rem;">0</div>
+                <div class="stat-mini-label" style="margin-top: 4px;">Rejected</div>
+              </div>
+              <div class="stat-mini-card" style="padding: 18px 14px;">
+                <div class="stat-mini-num" id="statTotal" style="color: #fff; font-size: 1.8rem;">0</div>
+                <div class="stat-mini-label" style="margin-top: 4px;">Total Proposals</div>
+              </div>
+            </div>
+
+            <!-- Filter & Controls Toolbar -->
+            <div style="background: rgba(16, 20, 34, 0.75); border: 1px solid var(--st-border); border-radius: var(--st-radius-lg); padding: 16px 20px; margin-bottom: 20px;">
+              
+              <!-- Filter Tabs -->
+              <div class="checker-filter-bar">
+                <button class="checker-filter-tab active" id="tab-PENDING" onclick="setFilter('PENDING', this)">
+                  ⏳ Pending Approvals <span class="tab-badge" id="tabCount-PENDING">0</span>
+                </button>
+                <button class="checker-filter-tab" id="tab-ALL" onclick="setFilter('ALL', this)">
+                  📋 All Loans <span class="tab-badge" id="tabCount-ALL">0</span>
+                </button>
+                <button class="checker-filter-tab" id="tab-UNDER_REVIEW" onclick="setFilter('UNDER_REVIEW', this)">
+                  🔍 Under Review <span class="tab-badge" id="tabCount-UNDER_REVIEW">0</span>
+                </button>
+                <button class="checker-filter-tab" id="tab-APPROVED" onclick="setFilter('APPROVED', this)">
+                  ✅ Approved <span class="tab-badge" id="tabCount-APPROVED">0</span>
+                </button>
+                <button class="checker-filter-tab" id="tab-DISBURSED" onclick="setFilter('DISBURSED', this)">
+                  💸 Disbursed <span class="tab-badge" id="tabCount-DISBURSED">0</span>
+                </button>
+                <button class="checker-filter-tab" id="tab-REJECTED" onclick="setFilter('REJECTED', this)">
+                  ❌ Rejected <span class="tab-badge" id="tabCount-REJECTED">0</span>
+                </button>
+              </div>
+
+              <!-- Search & Dropdown Filters -->
+              <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                <div style="flex: 1; min-width: 250px;">
+                  <input type="text" class="form-control" id="checkerSearch" placeholder="Search by Borrower Name, Loan Ref, Maker ID, Phone, PAN..." oninput="debounceSearch()">
+                </div>
+                <div style="min-width: 170px;">
+                  <select class="form-control" id="filterLoanType" onchange="renderFilteredLoans()">
+                    <option value="ALL">All Categories</option>
+                    <option value="Personal Loan">Personal Loan</option>
+                    <option value="Home Loan">Home Loan</option>
+                    <option value="Auto Loan">Auto Loan</option>
+                    <option value="Business Loan">Business Loan</option>
+                    <option value="Education Loan">Education Loan</option>
+                  </select>
+                </div>
+                <div style="min-width: 160px;">
+                  <select class="form-control" id="sortOrder" onchange="renderFilteredLoans()">
+                    <option value="newest">Sort: Newest First</option>
+                    <option value="oldest">Sort: Oldest First</option>
+                    <option value="amount_high">Amount: High → Low</option>
+                    <option value="amount_low">Amount: Low → High</option>
+                  </select>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Queue Container -->
+            <div id="loanQueueContainer">
+              <!-- Rendered via JavaScript -->
+            </div>
+
+          </div>
+
+          <!-- ==========================================
+               VIEW 2: TRACK STATUS & MAKER AUDIT HISTORY
+               ========================================== -->
+          <div id="trackerSection" style="display: none;">
+
+            <!-- Tracker Search & Audit Controls Toolbar -->
+            <div style="background: rgba(16, 20, 34, 0.75); border: 1px solid var(--st-border); border-radius: var(--st-radius-lg); padding: 22px 24px; margin-bottom: 24px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+                <div>
+                  <h4 style="color: #fff; font-size: 1.15rem; font-weight: 800; margin: 0 0 4px 0; display: flex; align-items: center; gap: 10px;">
+                    <span>🔍 Track Status & Maker Audit Console</span>
+                    <span class="st-beta-badge" style="background: rgba(6, 182, 212, 0.2); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">Maker Segregation Audit</span>
+                  </h4>
+                  <p style="font-size: 0.82rem; color: var(--st-text-secondary); margin: 0;">
+                    Track real-time milestone progress of any proposal, inspect originating Maker ID, and review their full historical origination track record.
+                  </p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="quickAuditMaker('hemanthmanih@gmail.com')" style="border-color: var(--st-cyan); color: #38bdf8;">
+                    🛠️ Audit Maker: Hemanth (#5)
+                  </button>
+                </div>
+              </div>
+
+              <!-- Search Bar -->
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 280px; position: relative;">
+                  <input type="text" class="form-control" id="trackerSearchInput" placeholder="Enter Loan Ref (e.g. LN-2026-40938), Maker ID / Staff Email, Phone, PAN..." style="padding-left: 38px;" onkeydown="if(event.key==='Enter') executeTrackerSearch();">
+                  <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--st-text-muted); font-size: 0.95rem;">🔎</span>
+                </div>
+                <button type="button" class="st-btn-connect-wallet" id="btnRunTrackerSearch" onclick="executeTrackerSearch()" style="padding: 10px 22px; font-size: 0.88rem;">
+                  Track & Audit ➔
+                </button>
+              </div>
+
+              <!-- Filter Quick Chips -->
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; align-items: center;">
+                <span style="font-size: 0.74rem; color: var(--st-text-muted);">Quick Search:</span>
+                <span class="quick-chip" onclick="setTrackerQuery('LN-2026-40938')">LN-2026-40938 (hemanth)</span>
+                <span class="quick-chip" onclick="setTrackerQuery('LN-2026-58120')">LN-2026-58120 (Aarav Sharma)</span>
+                <span class="quick-chip" onclick="setTrackerQuery('hemanthmanih@gmail.com')">Maker: Hemanth (Maker)</span>
+                <span class="quick-chip" onclick="setTrackerQuery('5')">Maker ID #5</span>
+              </div>
+            </div>
+
+            <!-- Tracker Empty State -->
+            <div id="trackerEmptyState" style="text-align: center; padding: 60px 20px; background: rgba(16,20,34,0.6); border: 1px solid var(--st-border); border-radius: var(--st-radius-lg);">
+              <div style="font-size: 3rem; margin-bottom: 12px;">🛡️</div>
+              <h3 style="color: #fff; font-size: 1.15rem; font-weight: 700; margin-bottom: 6px;">Ready to Track Loan Status & Maker Audit</h3>
+              <p style="font-size: 0.86rem; color: var(--st-text-secondary); max-width: 520px; margin: 0 auto 16px;">
+                Enter any Loan ID, Maker ID, staff email, or applicant contact above to inspect live progress and audit the originating Maker.
+              </p>
+              <button class="btn btn-secondary btn-sm" onclick="setTrackerQuery('hemanthmanih@gmail.com')">Audit Maker Profile (hemanthmanih@gmail.com)</button>
+            </div>
+
+            <!-- Tracker Results View (Populated dynamically) -->
+            <div id="trackerResultsWrapper" style="display: none;">
+
+              <!-- 1. Real-time Status & Stepper Card -->
+              <div class="st-card" style="margin-bottom: 24px; padding: 24px; border-radius: var(--st-radius-lg); background: rgba(14, 18, 32, 0.85); border: 1px solid var(--st-border);">
+                <!-- Top strip -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; border-bottom: 1px solid var(--st-border); padding-bottom: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <span style="font-family: var(--st-font-mono); font-size: 1.25rem; font-weight: 800; color: #fff;" id="trkAppNumber">LN-XXXX-XXXX</span>
+                      <span class="status-pill status-PENDING_APPROVAL" id="trkStatusBadge">PENDING APPROVAL</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--st-text-muted); margin-top: 4px;" id="trkSubmittedDate">
+                      Submitted on: Date
+                    </div>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 0.74rem; color: var(--st-text-muted);">Borrower Dossier</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #fff;" id="trkApplicantName">Borrower Name</div>
+                    <div style="font-size: 0.78rem; color: var(--st-text-secondary);" id="trkContact">Phone • Email</div>
+                  </div>
+                </div>
+
+                <!-- Milestone Stepper -->
+                <div class="track-stepper" id="trkStepper">
+                  <div class="track-step done" id="tStep1">
+                    <div class="track-step-circle">1</div>
+                    <div class="track-step-text">Originated (Maker)</div>
+                  </div>
+                  <div class="track-step current" id="tStep2">
+                    <div class="track-step-circle">2</div>
+                    <div class="track-step-text">Checker Review</div>
+                  </div>
+                  <div class="track-step" id="tStep3">
+                    <div class="track-step-circle">3</div>
+                    <div class="track-step-text">Document KYC</div>
+                  </div>
+                  <div class="track-step" id="tStep4">
+                    <div class="track-step-circle">4</div>
+                    <div class="track-step-text">Credit Sanction</div>
+                  </div>
+                  <div class="track-step" id="tStep5">
+                    <div class="track-step-circle">5</div>
+                    <div class="track-step-text">Disbursement</div>
+                  </div>
+                </div>
+
+                <!-- Financial Metrics Breakdown -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; background: rgba(10, 12, 22, 0.6); padding: 16px; border-radius: var(--st-radius-md); border: 1px solid var(--st-border);">
+                  <div>
+                    <div style="font-size: 0.72rem; color: var(--st-text-muted); text-transform: uppercase;">Loan Category</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-top: 4px;" id="trkLoanType">Personal Loan</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.72rem; color: var(--st-text-muted); text-transform: uppercase;">Loan Amount</div>
+                    <div style="font-size: 1.1rem; font-weight: 800; color: #34d399; font-family: var(--st-font-mono); margin-top: 4px;" id="trkLoanAmount">₹0</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.72rem; color: var(--st-text-muted); text-transform: uppercase;">Tenure & Rate</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-top: 4px;" id="trkTenureRate">36 Mo @ 11.5%</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.72rem; color: var(--st-text-muted); text-transform: uppercase;">Monthly EMI</div>
+                    <div style="font-size: 1.1rem; font-weight: 800; color: #10b981; font-family: var(--st-font-mono); margin-top: 4px;" id="trkMonthlyEmi">₹0</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.72rem; color: var(--st-text-muted); text-transform: uppercase;">Maker Appraisal Notes</div>
+                    <div style="font-size: 0.82rem; color: var(--st-text-secondary); margin-top: 4px;" id="trkOfficerNotes">Notes</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. MAKER ID & COMPLETE ORIGINATION AUDIT PROFILE CARD -->
+              <div class="st-card" style="margin-bottom: 24px; padding: 24px; border-radius: var(--st-radius-lg); background: rgba(14, 18, 32, 0.85); border: 1px solid rgba(6, 182, 212, 0.35); box-shadow: 0 0 24px rgba(6, 182, 212, 0.08);">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--st-border); padding-bottom: 16px; margin-bottom: 20px; flex-wrap: wrap; gap: 14px;">
+                  <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 48px; height: 48px; border-radius: 14px; background: rgba(6, 182, 212, 0.15); border: 1px solid var(--st-cyan); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                      🛠️
+                    </div>
+                    <div>
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <h4 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0;" id="mkrName">Hemanth (Maker)</h4>
+                        <span class="st-beta-badge" id="mkrIdBadge" style="background: rgba(6, 182, 212, 0.2); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4);">Staff ID #5</span>
+                      </div>
+                      <div style="font-size: 0.8rem; color: var(--st-text-secondary); margin-top: 3px;" id="mkrEmailTag">
+                        Email: hemanthmanih@gmail.com • Desk: Retail Loan Origination
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <span style="font-size: 0.74rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: var(--st-radius-sm); font-weight: 700;">
+                      Four-Eyes Accountable
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Maker Performance Metrics Strip -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                  <div style="background: rgba(10, 12, 22, 0.6); padding: 14px; border-radius: var(--st-radius-md); border: 1px solid var(--st-border); text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--st-text-muted); text-transform: uppercase;">Total Originated</div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: #fff; font-family: var(--st-font-mono); margin-top: 4px;" id="mkrStatTotal">0</div>
+                  </div>
+                  <div style="background: rgba(10, 12, 22, 0.6); padding: 14px; border-radius: var(--st-radius-md); border: 1px solid var(--st-border); text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--st-text-muted); text-transform: uppercase;">Total Volume</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #34d399; font-family: var(--st-font-mono); margin-top: 4px;" id="mkrStatVolume">₹0</div>
+                  </div>
+                  <div style="background: rgba(10, 12, 22, 0.6); padding: 14px; border-radius: var(--st-radius-md); border: 1px solid var(--st-border); text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--st-text-muted); text-transform: uppercase;">Approval Rate</div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: #38bdf8; font-family: var(--st-font-mono); margin-top: 4px;" id="mkrStatRate">0%</div>
+                  </div>
+                  <div style="background: rgba(10, 12, 22, 0.6); padding: 14px; border-radius: var(--st-radius-md); border: 1px solid var(--st-border); text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--st-text-muted); text-transform: uppercase;">Approved</div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: #10b981; font-family: var(--st-font-mono); margin-top: 4px;" id="mkrStatApproved">0</div>
+                  </div>
+                  <div style="background: rgba(10, 12, 22, 0.6); padding: 14px; border-radius: var(--st-radius-md); border: 1px solid var(--st-border); text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--st-text-muted); text-transform: uppercase;">Pending</div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: #fbbf24; font-family: var(--st-font-mono); margin-top: 4px;" id="mkrStatPending">0</div>
+                  </div>
+                  <div style="background: rgba(10, 12, 22, 0.6); padding: 14px; border-radius: var(--st-radius-md); border: 1px solid var(--st-border); text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--st-text-muted); text-transform: uppercase;">Rejected</div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: #fb7185; font-family: var(--st-font-mono); margin-top: 4px;" id="mkrStatRejected">0</div>
+                  </div>
+                </div>
+
+                <!-- Maker Historical Submissions Table -->
+                <div style="margin-top: 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h5 style="color: #fff; font-size: 0.92rem; font-weight: 700; margin: 0;">📜 All Historical Proposals Originated by this Maker:</h5>
+                    <span style="font-size: 0.74rem; color: var(--st-text-muted);" id="mkrTableCount">0 Records</span>
+                  </div>
+                  <div style="overflow-x: auto;">
+                    <table class="st-table" style="width: 100%; font-size: 0.82rem;">
+                      <thead>
+                        <tr>
+                          <th>Application Ref</th>
+                          <th>Borrower</th>
+                          <th>Category</th>
+                          <th>Loan Amount</th>
+                          <th>Status</th>
+                          <th>Originated Date</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="mkrHistoryTableBody">
+                        <!-- Populated dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. LIFECYCLE AUDIT TIMELINE -->
+              <div class="st-card" style="padding: 24px; border-radius: var(--st-radius-lg); background: rgba(14, 18, 32, 0.85); border: 1px solid var(--st-border);">
+                <h4 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 16px;">⏱️ Proposal Status Audit Trail & Event Logs</h4>
+                <div class="track-timeline" id="trkTimeline">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- =================== DECISION MODAL =================== -->
+  <div class="st-modal-overlay" id="decisionModal">
+    <div class="st-modal" style="max-width: 620px;">
+      <div class="st-modal-header">
+        <h3 class="st-modal-title" id="decisionModalTitle">Authorize Loan Proposal</h3>
+        <button class="st-modal-close" onclick="closeDecisionModal()">✕</button>
+      </div>
+
+      <!-- Loan summary strip inside modal -->
+      <div id="decisionModalSummary" style="background: rgba(14, 18, 32, 0.9); border: 1px solid var(--st-border); border-radius: var(--st-radius-md); padding: 14px 18px; margin-bottom: 20px; font-size: 0.85rem;">
+        <!-- Filled dynamically -->
+      </div>
+
+      <!-- Decision Choices -->
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" style="margin-bottom: 10px;">Select Decision Action:</label>
+        <div class="decision-options-grid">
+          <div class="decision-option-card" id="optApprove" onclick="selectDecision('APPROVED')">
+            <span style="font-size: 1.3rem;">✅</span>
+            <div>
+              <div style="font-weight: 700; color: #fff; font-size: 0.88rem;">Approve & Sanction</div>
+              <div style="font-size: 0.72rem; color: var(--st-text-muted);">Authorize sanction letter</div>
+            </div>
+          </div>
+
+          <div class="decision-option-card" id="optReject" onclick="selectDecision('REJECTED')">
+            <span style="font-size: 1.3rem;">❌</span>
+            <div>
+              <div style="font-weight: 700; color: #fff; font-size: 0.88rem;">Reject Proposal</div>
+              <div style="font-size: 0.72rem; color: var(--st-text-muted);">Decline proposal with reason</div>
+            </div>
+          </div>
+
+          <div class="decision-option-card" id="optDocs" onclick="selectDecision('DOCS_VERIFICATION')">
+            <span style="font-size: 1.3rem;">📄</span>
+            <div>
+              <div style="font-weight: 700; color: #fff; font-size: 0.88rem;">Request Documents</div>
+              <div style="font-size: 0.72rem; color: var(--st-text-muted);">Request missing KYC / slips</div>
+            </div>
+          </div>
+
+          <div class="decision-option-card" id="optDisburse" onclick="selectDecision('DISBURSED')">
+            <span style="font-size: 1.3rem;">💸</span>
+            <div>
+              <div style="font-weight: 700; color: #fff; font-size: 0.88rem;">Disburse Funds</div>
+              <div style="font-size: 0.72rem; color: var(--st-text-muted);">Release funds to borrower</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Remarks / Reason Input -->
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label class="form-label" for="checkerNotes" id="notesLabel" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Checker Notes / Sanction Conditions <span class="required" id="notesRequired" style="display:none;">*</span></span>
+          <span id="rejectionWarningBadge" style="display: none; font-size: 0.72rem; color: #fb7185;">⚠️ Mandatory for Rejection</span>
+        </label>
+        <textarea class="form-control" id="checkerNotes" rows="3" placeholder="Select a decision above or enter notes..."></textarea>
+
+        <!-- Quick Rejection Reasons -->
+        <div id="quickRejectionChips" style="display: none; margin-top: 10px;">
+          <div style="font-size: 0.72rem; color: var(--st-text-muted); margin-bottom: 6px;">⚡ Quick rejection reasons:</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <button type="button" class="quick-chip" onclick="setDecisionNote('Credit score below policy threshold (CIBIL < 700).')">Low CIBIL</button>
+            <button type="button" class="quick-chip" onclick="setDecisionNote('Debt-to-Income (DTI) ratio exceeds 50% limit.')">High DTI Ratio</button>
+            <button type="button" class="quick-chip" onclick="setDecisionNote('Monthly income insufficient to support requested EMI.')">Insufficient Income</button>
+            <button type="button" class="quick-chip" onclick="setDecisionNote('KYC documents mismatch with customer database.')">KYC Discrepancy</button>
+            <button type="button" class="quick-chip" onclick="setDecisionNote('Unverified employer or missing salary slips.')">Unverified Employer</button>
+          </div>
+        </div>
+
+        <!-- Quick Approval Remarks -->
+        <div id="quickApprovalChips" style="display: none; margin-top: 10px;">
+          <div style="font-size: 0.72rem; color: var(--st-text-muted); margin-bottom: 6px;">⚡ Quick approval remarks:</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <button type="button" class="quick-chip chip-emerald" onclick="setDecisionNote('Appraisal verified and approved under standard lending terms.')">Standard Approval</button>
+            <button type="button" class="quick-chip chip-emerald" onclick="setDecisionNote('KYC, salary slips and CIBIL score verified. Sanction letter issued.')">KYC & Salary Verified</button>
+            <button type="button" class="quick-chip chip-emerald" onclick="setDecisionNote('Priority customer approval with standard interest rate.')">Priority Customer</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--st-border); padding-top: 16px;">
+        <button type="button" class="btn btn-secondary" onclick="closeDecisionModal()">Cancel</button>
+        <button type="button" class="st-btn-connect-wallet" id="confirmDecisionBtn" onclick="submitCheckerDecision()" disabled style="padding: 10px 24px;">
+          Select a Decision ↑
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== LOAN DOSSIER MODAL =================== -->
+  <div class="st-modal-overlay" id="detailModal">
+    <div class="st-modal" style="max-width: 680px;">
+      <div class="st-modal-header">
+        <h3 class="st-modal-title" id="detailModalTitle">Full Underwriting Dossier</h3>
+        <button class="st-modal-close" onclick="closeDetailModal()">✕</button>
+      </div>
+      <div id="detailModalContent" style="max-height: 480px; overflow-y: auto; margin-bottom: 18px;"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--st-border); padding-top: 14px;">
+        <div id="detailActionButtons" style="display: flex; gap: 8px;"></div>
+        <button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast -->
+  <div class="st-toast" id="stakentToast"></div>
+
+  <!-- Scripts -->
+  <script src="js/main.js"></script>
+  <script src="js/authGuard.js"></script>
+  <script>
+    let allLoans = [];
+    let currentFilter = 'PENDING';
+    let selectedLoanId = null;
+    let selectedDecisionValue = '';
+    let liveSyncInterval = null;
+    let isLiveSync = true;
+    let debounceTimer = null;
+
+    const PENDING_STATUSES = ['PENDING_APPROVAL', 'AWAITING_APPROVAL', 'SUBMITTED'];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      checkCheckerAccess();
+    });
+
+    function checkCheckerAccess() {
+      const user = getCurrentUser();
+      const token = getAuthToken();
+      if (!token || !user) {
+        sessionStorage.setItem('auth_error_message', '🔒 Please sign in with Checker credentials to access the Checker Desk.');
+        window.location.replace('auth.html');
+        return;
+      }
+      const role = (user.role || '').toUpperCase();
+      const email = (user.email || '').toLowerCase();
+
+      if (email !== 'hemanthmanih@gmail.com' || (role !== 'CHECKER' && role !== 'OFFICER' && role !== 'ADMIN')) {
+        sessionStorage.setItem('auth_error_message', '⛔ Access Denied: Only the authorized Checker (hemanthmanih@gmail.com) can access this page.');
+        window.location.replace('auth.html');
+        return;
+      }
+
+      const checkerInterface = document.getElementById('checkerInterface');
+      const guard = document.getElementById('accessGuard');
+
+      if (guard) guard.style.display = 'none';
+      if (checkerInterface) checkerInterface.style.display = 'block';
+      updateHeaderUser(user);
+      loadAllLoans();
+      startLiveSync();
+
+      // Check URL hash or query params to handle deep links
+      const hash = window.location.hash;
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      const q = urlParams.get('query') || urlParams.get('app');
+
+      if (hash === '#tracker' || tab === 'tracker' || q) {
+        switchCheckerView('tracker');
+        if (q) {
+          document.getElementById('trackerSearchInput').value = q;
+          executeTrackerSearch(q);
+        }
+      }
+    }
+
+    function updateHeaderUser(user) {
+      const headerName = document.getElementById('headerName');
+      const headerRole = document.getElementById('headerRole');
+      const headerAvatar = document.getElementById('headerAvatar');
+      if (headerName) headerName.textContent = user.name || 'Victoria Vance';
+      if (headerRole) headerRole.textContent = (user.role || 'CHECKER').toUpperCase();
+      if (headerAvatar) {
+        const initials = (user.name || 'VV').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        headerAvatar.textContent = initials;
+      }
+    }
+
+    async function loadAllLoans(silent = false) {
+      try {
+        const res = await fetch('/api/all', { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (data.success) {
+          const newLoans = data.data || [];
+          const hasChanged = JSON.stringify(newLoans) !== JSON.stringify(allLoans);
+          if (hasChanged || !silent) {
+            allLoans = newLoans;
+            updateStats(allLoans);
+            renderFilteredLoans();
+          }
+        } else if (!silent) {
+          showToast('Failed to load applications from database.', 'error');
+        }
+      } catch (err) {
+        if (!silent) showToast('Could not connect to server.', 'error');
+      }
+    }
+
+    function updateStats(loans) {
+      const pending = loans.filter(l => PENDING_STATUSES.includes(l.status) || l.status === 'UNDER_REVIEW' || l.status === 'DOCS_VERIFICATION').length;
+      document.getElementById('statPending').textContent = pending;
+      document.getElementById('statTotal').textContent = loans.length;
+      document.getElementById('statApproved').textContent = loans.filter(l => l.status === 'APPROVED').length;
+      document.getElementById('statRejected').textContent = loans.filter(l => l.status === 'REJECTED').length;
+      document.getElementById('statDisbursed').textContent = loans.filter(l => l.status === 'DISBURSED').length;
+
+      const queueBadge = document.getElementById('viewQueueBadge');
+      if (queueBadge) queueBadge.textContent = pending;
+
+      setTabCount('PENDING', pending);
+      setTabCount('ALL', loans.length);
+      setTabCount('UNDER_REVIEW', loans.filter(l => l.status === 'UNDER_REVIEW' || l.status === 'DOCS_VERIFICATION').length);
+      setTabCount('APPROVED', loans.filter(l => l.status === 'APPROVED').length);
+      setTabCount('REJECTED', loans.filter(l => l.status === 'REJECTED').length);
+      setTabCount('DISBURSED', loans.filter(l => l.status === 'DISBURSED').length);
+    }
+
+    function setTabCount(key, count) {
+      const el = document.getElementById(`tabCount-${key}`);
+      if (el) el.textContent = count;
+    }
+
+    function setFilter(filter, btnEl) {
+      currentFilter = filter;
+      document.querySelectorAll('.checker-filter-tab').forEach(t => t.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      renderFilteredLoans();
+    }
+
+    function debounceSearch() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(renderFilteredLoans, 250);
+    }
+
+    function renderFilteredLoans() {
+      const search = (document.getElementById('checkerSearch').value || '').trim().toLowerCase();
+      const loanTypeFilter = document.getElementById('filterLoanType').value;
+      const sortOrder = document.getElementById('sortOrder').value;
+
+      let filtered = [...allLoans];
+
+      if (currentFilter === 'PENDING') {
+        filtered = filtered.filter(l => PENDING_STATUSES.includes(l.status) || l.status === 'UNDER_REVIEW' || l.status === 'DOCS_VERIFICATION');
+      } else if (currentFilter === 'UNDER_REVIEW') {
+        filtered = filtered.filter(l => l.status === 'UNDER_REVIEW' || l.status === 'DOCS_VERIFICATION');
+      } else if (currentFilter !== 'ALL') {
+        filtered = filtered.filter(l => l.status === currentFilter);
+      }
+
+      if (loanTypeFilter !== 'ALL') {
+        filtered = filtered.filter(l => l.loan_type === loanTypeFilter);
+      }
+
+      if (search) {
+        filtered = filtered.filter(l =>
+          (l.application_number || '').toLowerCase().includes(search) ||
+          (l.applicant_name || '').toLowerCase().includes(search) ||
+          (l.email || '').toLowerCase().includes(search) ||
+          (l.phone || '').includes(search) ||
+          (l.customer_id || '').toLowerCase().includes(search) ||
+          (l.pan_or_id || '').toLowerCase().includes(search)
+        );
+      }
+
+      filtered.sort((a, b) => {
+        if (sortOrder === 'newest') return new Date(b.created_at) - new Date(a.created_at);
+        if (sortOrder === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
+        if (sortOrder === 'amount_high') return b.loan_amount - a.loan_amount;
+        if (sortOrder === 'amount_low') return a.loan_amount - b.loan_amount;
+        return 0;
+      });
+
+      renderLoanCards(filtered);
+    }
+
+    function renderLoanCards(loans) {
+      const container = document.getElementById('loanQueueContainer');
+
+      if (loans.length === 0) {
+        const isAllClear = currentFilter === 'PENDING';
+        container.innerHTML = `
+          <div style="text-align: center; padding: 60px 20px; background: rgba(16,20,34,0.6); border: 1px solid var(--st-border); border-radius: var(--st-radius-lg);">
+            <div style="font-size: 3rem; margin-bottom: 12px;">${isAllClear ? '🎉' : '📭'}</div>
+            <div style="font-size: 1.15rem; font-weight: 700; color: ${isAllClear ? '#34d399' : 'var(--st-text-muted)'}; margin-bottom: 6px;">
+              ${isAllClear ? 'All Clear! No pending proposals awaiting approval.' : 'No loan applications match your filters.'}
+            </div>
+            <div style="font-size: 0.88rem; color: var(--st-text-secondary);">
+              ${isAllClear ? 'All maker-originated proposals have been reviewed and sanctioned.' : 'Try adjusting the search query or status filter.'}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const currentUser = getCurrentUser();
+      container.innerHTML = loans.map(loan => buildLoanCard(loan, currentUser)).join('');
+    }
+
+    function buildLoanCard(loan, currentUser) {
+      const isPending = PENDING_STATUSES.includes(loan.status) || loan.status === 'UNDER_REVIEW' || loan.status === 'DOCS_VERIFICATION';
+      const isApproved = loan.status === 'APPROVED';
+      const isRejected = loan.status === 'REJECTED';
+      const isDisbursed = loan.status === 'DISBURSED';
+
+      const emiToIncome = loan.monthly_income > 0
+        ? ((parseFloat(loan.monthly_emi || 0) + parseFloat(loan.existing_emis || 0)) / loan.monthly_income * 100).toFixed(1)
+        : null;
+      const riskClass = emiToIncome === null ? '' : parseFloat(emiToIncome) > 50 ? 'risk-high' : parseFloat(emiToIncome) > 35 ? 'risk-med' : 'risk-low';
+      const riskLabel = emiToIncome === null ? '' : parseFloat(emiToIncome) > 50 ? '⚠️ High Risk DTI' : parseFloat(emiToIncome) > 35 ? '⚡ Moderate DTI' : '✅ Safe DTI';
+
+      // Four-Eyes self approval check
+      const isSelf = currentUser && (
+        (loan.created_by_email && currentUser.email && currentUser.email.toLowerCase() === loan.created_by_email.toLowerCase()) ||
+        (loan.created_by_id && currentUser.id && currentUser.id === loan.created_by_id)
+      );
+
+      return `
+        <div class="loan-queue-card">
+          <div class="queue-card-header">
+            <div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-family: var(--st-font-mono); font-size: 1.1rem; font-weight: 800; color: #fff;">${loan.application_number}</span>
+                <span class="status-pill status-${loan.status}" style="font-size: 0.74rem;">${loan.status.replace(/_/g, ' ')}</span>
+                ${riskClass ? `<span class="risk-indicator ${riskClass}">${riskLabel} (${emiToIncome}%)</span>` : ''}
+              </div>
+              <div style="font-size: 0.84rem; color: var(--st-text-secondary); margin-top: 4px;">
+                <strong>${loan.applicant_name}</strong> • ${loan.email} • ${loan.phone}
+                ${loan.customer_id ? `• <span style="color: var(--st-cyan); font-family: var(--st-font-mono);">${loan.customer_id}</span>` : ''}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: 0.72rem; color: var(--st-text-muted);">Originated by Maker</div>
+              <div style="display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 2px;">
+                <span style="font-size: 0.84rem; color: #38bdf8; font-weight: 700;">${loan.created_by_name || 'David Miller (Maker)'}</span>
+                <span class="st-beta-badge" style="background: rgba(6, 182, 212, 0.18); color: #38bdf8; border-color: rgba(6, 182, 212, 0.4); font-size: 0.68rem; padding: 2px 7px;">ID #${loan.created_by_id || 1}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="queue-card-body">
+            <div class="queue-metric-item">
+              <span class="queue-metric-label">Loan Category</span>
+              <span class="queue-metric-val" style="font-family: inherit; font-size: 0.95rem;">${loan.loan_type}</span>
+            </div>
+            <div class="queue-metric-item">
+              <span class="queue-metric-label">Sanction Amount</span>
+              <span class="queue-metric-val" style="color: #34d399;">${formatCurrency(loan.loan_amount)}</span>
+            </div>
+            <div class="queue-metric-item">
+              <span class="queue-metric-label">Tenure & Rate</span>
+              <span class="queue-metric-val">${loan.tenure_months} Mo @ ${loan.interest_rate}%</span>
+            </div>
+            <div class="queue-metric-item">
+              <span class="queue-metric-label">Monthly EMI</span>
+              <span class="queue-metric-val" style="color: #10b981;">${formatCurrency(loan.monthly_emi)}/mo</span>
+            </div>
+            <div class="queue-metric-item">
+              <span class="queue-metric-label">Monthly Income</span>
+              <span class="queue-metric-val">${formatCurrency(loan.monthly_income)}</span>
+            </div>
+            <div class="queue-metric-item">
+              <span class="queue-metric-label">CIBIL Score</span>
+              <span class="queue-metric-val" style="color: ${loan.credit_score >= 750 ? '#34d399' : loan.credit_score >= 650 ? '#fbbf24' : '#fb7185'};">${loan.credit_score || 'N/A'}</span>
+            </div>
+          </div>
+
+          ${loan.officer_notes ? `
+            <div style="background: rgba(14,18,32,0.85); border: 1px solid var(--st-border); border-radius: var(--st-radius-md); padding: 10px 14px; margin-bottom: 16px; font-size: 0.8rem; color: var(--st-text-secondary);">
+              <strong style="color: var(--st-cyan);">Appraisal / Remarks:</strong> ${loan.officer_notes}
+            </div>
+          ` : ''}
+
+          ${isSelf ? `
+            <div style="background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.35); border-radius: var(--st-radius-md); padding: 8px 14px; margin-bottom: 14px; font-size: 0.78rem; color: #fb7185;">
+              ⚠️ <strong>Segregation Rule:</strong> You originated this proposal as Maker. A separate Checker must approve or reject it.
+            </div>
+          ` : ''}
+
+          <div class="queue-card-actions">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              ${isPending ? `
+                <button class="btn btn-secondary btn-sm" onclick="openDecisionModal(${loan.id}, 'APPROVED')" style="border-color: #34d399; color: #34d399;" ${isSelf ? 'disabled' : ''}>
+                  ✅ Approve
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="openDecisionModal(${loan.id}, 'REJECTED')" style="border-color: #fb7185; color: #fb7185;">
+                  ❌ Reject
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="openDecisionModal(${loan.id}, 'DOCS_VERIFICATION')" style="border-color: #c084fc; color: #c084fc;">
+                  📄 Request Docs
+                </button>
+              ` : ''}
+
+              ${isApproved ? `
+                <button class="btn btn-secondary btn-sm" onclick="openDecisionModal(${loan.id}, 'DISBURSED')" style="border-color: #67e8f9; color: #67e8f9;">
+                  💸 Disburse Funds
+                </button>
+              ` : ''}
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="auditLoanMaker('${loan.application_number}', '${loan.created_by_email || loan.created_by_id || 'hemanthmanih@gmail.com'}')" style="border-color: rgba(6, 182, 212, 0.45); color: #38bdf8;">
+                🔎 Track & Audit Maker
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="openDetailModal(${loan.id})">
+                📋 Dossier
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function openDecisionModal(loanId, preselectStatus = '') {
+      selectedLoanId = loanId;
+      const loan = allLoans.find(l => l.id === loanId);
+      if (!loan) return;
+
+      document.getElementById('decisionModalTitle').textContent = `Authorize ${loan.application_number}`;
+      document.getElementById('decisionModalSummary').innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <strong style="color: #fff; font-size: 0.95rem;">${loan.applicant_name}</strong>
+          <span style="color: #34d399; font-weight: 700;">${formatCurrency(loan.loan_amount)} (${loan.loan_type})</span>
+        </div>
+        <div style="color: var(--st-text-muted); font-size: 0.78rem;">
+          Tenure: ${loan.tenure_months} Mo • EMI: ${formatCurrency(loan.monthly_emi)} • CIBIL: ${loan.credit_score} • DTI: ${loan.monthly_income > 0 ? ((parseFloat(loan.monthly_emi || 0) + parseFloat(loan.existing_emis || 0)) / loan.monthly_income * 100).toFixed(1) : 0}%
+        </div>
+      `;
+
+      document.getElementById('checkerNotes').value = '';
+      if (preselectStatus) {
+        selectDecision(preselectStatus);
+      } else {
+        resetDecisionSelection();
+      }
+
+      document.getElementById('decisionModal').classList.add('open');
+    }
+
+    function closeDecisionModal() {
+      document.getElementById('decisionModal').classList.remove('open');
+      selectedLoanId = null;
+      selectedDecisionValue = '';
+    }
+
+    function resetDecisionSelection() {
+      selectedDecisionValue = '';
+      document.querySelectorAll('.decision-option-card').forEach(c => {
+        c.className = 'decision-option-card';
+      });
+      document.getElementById('confirmDecisionBtn').disabled = true;
+      document.getElementById('confirmDecisionBtn').textContent = 'Select a Decision ↑';
+      document.getElementById('quickRejectionChips').style.display = 'none';
+      document.getElementById('quickApprovalChips').style.display = 'none';
+      document.getElementById('notesRequired').style.display = 'none';
+      document.getElementById('rejectionWarningBadge').style.display = 'none';
+    }
+
+    function selectDecision(status) {
+      selectedDecisionValue = status;
+      document.querySelectorAll('.decision-option-card').forEach(c => {
+        c.className = 'decision-option-card';
+      });
+
+      const confirmBtn = document.getElementById('confirmDecisionBtn');
+      const notesReq = document.getElementById('notesRequired');
+      const rejWarn = document.getElementById('rejectionWarningBadge');
+      const rejChips = document.getElementById('quickRejectionChips');
+      const appChips = document.getElementById('quickApprovalChips');
+
+      rejChips.style.display = 'none';
+      appChips.style.display = 'none';
+      notesReq.style.display = 'none';
+      rejWarn.style.display = 'none';
+
+      if (status === 'APPROVED') {
+        document.getElementById('optApprove').className = 'decision-option-card selected-approve';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm Approval & Sanction ✅';
+        appChips.style.display = 'block';
+      } else if (status === 'REJECTED') {
+        document.getElementById('optReject').className = 'decision-option-card selected-reject';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm Rejection ❌';
+        notesReq.style.display = 'inline';
+        rejWarn.style.display = 'inline';
+        rejChips.style.display = 'block';
+      } else if (status === 'DOCS_VERIFICATION') {
+        document.getElementById('optDocs').className = 'decision-option-card selected-docs';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Request Documents 📄';
+      } else if (status === 'DISBURSED') {
+        document.getElementById('optDisburse').className = 'decision-option-card selected-disburse';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Authorize Disbursement 💸';
+      }
+    }
+
+    function setDecisionNote(text) {
+      document.getElementById('checkerNotes').value = text;
+    }
+
+    async function submitCheckerDecision() {
+      if (!selectedLoanId || !selectedDecisionValue) return;
+
+      const notes = (document.getElementById('checkerNotes').value || '').trim();
+
+      // Rule: Reason is mandatory for rejection
+      if (selectedDecisionValue === 'REJECTED' && !notes) {
+        showToast('Please provide a mandatory reason for rejecting this loan.', 'error');
+        document.getElementById('checkerNotes').focus();
+        return;
+      }
+
+      const confirmBtn = document.getElementById('confirmDecisionBtn');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Updating in MySQL...';
+
+      try {
+        const currentUser = getCurrentUser();
+        const payload = {
+          status: selectedDecisionValue,
+          notes: notes,
+          reason: notes,
+          officerName: currentUser ? `${currentUser.name} (${currentUser.role})` : 'Victoria Vance (CHECKER)'
+        };
+
+        const res = await fetch(`/api/status/${selectedLoanId}`, {
+          method: 'PATCH',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          showToast(`Loan status updated to ${selectedDecisionValue} successfully!`, 'success');
+          closeDecisionModal();
+          loadAllLoans(true);
+        } else {
+          showToast(data.message || 'Failed to update loan status.', 'error');
+        }
+      } catch (err) {
+        showToast('Server communication error.', 'error');
+      } finally {
+        confirmBtn.disabled = false;
+      }
+    }
+
+    function openDetailModal(loanId) {
+      const loan = allLoans.find(l => l.id === loanId);
+      if (!loan) return;
+
+      document.getElementById('detailModalTitle').textContent = `Dossier: ${loan.application_number}`;
+
+      const rows = [
+        ['Borrower Legal Name', loan.applicant_name],
+        ['Email / Phone', `${loan.email} / ${loan.phone}`],
+        ['PAN / Tax ID', loan.pan_or_id || 'N/A'],
+        ['Customer Master ID', loan.customer_id || 'N/A'],
+        ['Employment', `${loan.employment_type} — ${loan.employer_name || 'N/A'}`],
+        ['Net Monthly Income', formatCurrency(loan.monthly_income)],
+        ['Existing Obligations (EMIs)', formatCurrency(loan.existing_emis || 0)],
+        ['CIBIL Credit Score', loan.credit_score || 'N/A'],
+        ['Requested Facility', loan.loan_type],
+        ['Loan Amount', formatCurrency(loan.loan_amount)],
+        ['Tenure', `${loan.tenure_months} months`],
+        ['Interest Rate', `${loan.interest_rate}% p.a.`],
+        ['Calculated Monthly EMI', formatCurrency(loan.monthly_emi)],
+        ['Originated By', `${loan.created_by_name || 'Hemanth (Maker)'} (${loan.created_by_email || 'hemanthmanih@gmail.com'})`],
+        ['Submission Timestamp', new Date(loan.created_at).toLocaleString('en-IN')],
+        ['Current Status', loan.status.replace(/_/g, ' ')]
+      ];
+
+      document.getElementById('detailModalContent').innerHTML = `
+        <div style="margin-bottom: 14px; padding: 12px 16px; background: rgba(14,18,32,0.85); border-radius: var(--st-radius-md); display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.8rem; color: var(--st-text-muted);">Current Authorization Status:</span>
+          <span class="status-pill status-${loan.status}" style="font-size: 0.8rem;">${loan.status.replace(/_/g, ' ')}</span>
+        </div>
+        ${rows.map(([label, value]) => `
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.84rem;">
+            <span style="color: var(--st-text-muted); font-weight: 600;">${label}</span>
+            <span style="color: #fff; text-align: right;">${value}</span>
+          </div>
+        `).join('')}
+        ${loan.officer_notes ? `
+          <div style="margin-top: 12px; padding: 12px 14px; background: rgba(14,18,32,0.85); border-radius: var(--st-radius-md); font-size: 0.82rem;">
+            <strong style="color: var(--st-cyan);">Appraisal & Officer Notes:</strong>
+            <div style="color: var(--st-text-secondary); margin-top: 4px;">${loan.officer_notes}</div>
+          </div>
+        ` : ''}
+      `;
+
+      const isPending = PENDING_STATUSES.includes(loan.status) || loan.status === 'UNDER_REVIEW' || loan.status === 'DOCS_VERIFICATION';
+      const currentUser = getCurrentUser();
+      const isSelf = currentUser && loan.created_by_email && currentUser.email.toLowerCase() === loan.created_by_email.toLowerCase();
+
+      let actionsHtml = '';
+      if (isPending) {
+        actionsHtml = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDetailModal(); openDecisionModal(${loan.id}, 'APPROVED');" style="border-color: #34d399; color: #34d399;" ${isSelf ? 'disabled' : ''}>
+            ✅ Approve
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="closeDetailModal(); openDecisionModal(${loan.id}, 'REJECTED');" style="border-color: #fb7185; color: #fb7185;">
+            ❌ Reject
+          </button>
+        `;
+      } else if (loan.status === 'APPROVED') {
+        actionsHtml = `
+          <button class="btn btn-secondary btn-sm" onclick="closeDetailModal(); openDecisionModal(${loan.id}, 'DISBURSED');" style="border-color: #67e8f9; color: #67e8f9;">
+            💸 Disburse
+          </button>
+        `;
+      }
+
+      document.getElementById('detailActionButtons').innerHTML = actionsHtml;
+      document.getElementById('detailModal').classList.add('open');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.remove('open');
+    }
+
+    function startLiveSync() {
+      if (liveSyncInterval) clearInterval(liveSyncInterval);
+      liveSyncInterval = setInterval(() => {
+        const decisionOpen = document.getElementById('decisionModal').classList.contains('open');
+        if (isLiveSync && !decisionOpen && !document.hidden) {
+          loadAllLoans(true);
+        }
+      }, 5000);
+    }
+
+    function toggleLiveSync() {
+      isLiveSync = !isLiveSync;
+      const dot = document.getElementById('liveSyncDot');
+      const text = document.getElementById('liveSyncText');
+      const btn = document.getElementById('liveSyncBtn');
+      if (isLiveSync) {
+        dot.style.background = '#34d399';
+        dot.style.boxShadow = '0 0 6px #34d399';
+        text.textContent = 'Live Sync';
+        btn.style.color = '#34d399';
+        showToast('Live background sync resumed', 'info');
+      } else {
+        dot.style.background = '#94a3b8';
+        dot.style.boxShadow = 'none';
+        text.textContent = 'Paused';
+        btn.style.color = '#94a3b8';
+        showToast('Live sync paused', 'info');
+      }
+    }
+
+    // =======================================================
+    // TRACK STATUS & MAKER AUDIT WORKFLOW
+    // =======================================================
+    let activeCheckerView = 'queue';
+    let trackerPollingInterval = null;
+
+    function switchCheckerView(view) {
+      activeCheckerView = view;
+      const queueSec = document.getElementById('queueSection');
+      const trackerSec = document.getElementById('trackerSection');
+      const btnQueue = document.getElementById('btnSwitchQueue');
+      const btnTracker = document.getElementById('btnSwitchTracker');
+
+      if (view === 'tracker') {
+        queueSec.style.display = 'none';
+        trackerSec.style.display = 'block';
+        btnQueue.classList.remove('active-view');
+        btnTracker.classList.add('active-view');
+        window.location.hash = 'tracker';
+
+        // Auto-run search if input has value and not searched yet
+        const curQuery = document.getElementById('trackerSearchInput').value.trim();
+        if (curQuery && document.getElementById('trackerResultsWrapper').style.display === 'none') {
+          executeTrackerSearch(curQuery);
+        }
+      } else {
+        queueSec.style.display = 'block';
+        trackerSec.style.display = 'none';
+        btnQueue.classList.add('active-view');
+        btnTracker.classList.remove('active-view');
+        window.location.hash = '';
+      }
+    }
+
+    function setTrackerQuery(val) {
+      document.getElementById('trackerSearchInput').value = val;
+      executeTrackerSearch(val);
+    }
+
+    function quickAuditMaker(makerEmail) {
+      setTrackerQuery(makerEmail);
+    }
+
+    function auditLoanMaker(appNumber, makerQuery) {
+      switchCheckerView('tracker');
+      setTrackerQuery(appNumber || makerQuery);
+    }
+
+    async function executeTrackerSearch(customQuery = null, isSilent = false) {
+      const input = document.getElementById('trackerSearchInput');
+      const query = (customQuery !== null ? customQuery : input.value).trim();
+      if (!query) {
+        showToast('Please enter a Loan ID, Maker ID, or contact details to track.', 'info');
+        return;
+      }
+
+      input.value = query;
+      const btn = document.getElementById('btnRunTrackerSearch');
+      if (!isSilent && btn) {
+        btn.disabled = true;
+        btn.textContent = 'Searching...';
+      }
+
+      try {
+        const res = await fetch(`/api/track?query=${encodeURIComponent(query)}`, { headers: getAuthHeaders() });
+        const data = await res.json();
+
+        if (data.success && data.data) {
+          document.getElementById('trackerEmptyState').style.display = 'none';
+          document.getElementById('trackerResultsWrapper').style.display = 'block';
+          renderTrackerResults(data.data.application, data.data.history, data.data.makerAudit, data.data.allMatches);
+
+          // Polling every 5 seconds if tracker view is open
+          if (!trackerPollingInterval) {
+            trackerPollingInterval = setInterval(() => {
+              if (activeCheckerView === 'tracker' && !document.hidden) {
+                const cur = document.getElementById('trackerSearchInput').value.trim();
+                if (cur) executeTrackerSearch(cur, true);
+              }
+            }, 5000);
+          }
+        } else {
+          if (!isSilent) {
+            document.getElementById('trackerResultsWrapper').style.display = 'none';
+            document.getElementById('trackerEmptyState').style.display = 'block';
+            showToast(data.message || 'No matching loan or maker record found.', 'error');
+          }
+        }
+      } catch (err) {
+        if (!isSilent) {
+          showToast('Failed to connect to tracking API.', 'error');
+        }
+      } finally {
+        if (!isSilent && btn) {
+          btn.disabled = false;
+          btn.textContent = 'Track & Audit ➔';
+        }
+      }
+    }
+
+    function renderTrackerResults(app, history, makerAudit, allMatches) {
+      if (!app) return;
+
+      // 1. Application Details
+      document.getElementById('trkAppNumber').textContent = app.application_number;
+      document.getElementById('trkSubmittedDate').textContent = `Submitted on: ${new Date(app.created_at).toLocaleString()}`;
+      
+      const badge = document.getElementById('trkStatusBadge');
+      badge.className = `status-pill status-${app.status}`;
+      badge.textContent = app.status.replace(/_/g, ' ');
+
+      document.getElementById('trkApplicantName').textContent = app.applicant_name;
+      document.getElementById('trkContact').textContent = `${app.phone} • ${app.email}`;
+
+      document.getElementById('trkLoanType').textContent = app.loan_type;
+      document.getElementById('trkLoanAmount').textContent = formatCurrency(app.loan_amount);
+      document.getElementById('trkTenureRate').textContent = `${app.tenure_months} Mo @ ${app.interest_rate}% p.a.`;
+      document.getElementById('trkMonthlyEmi').textContent = `${formatCurrency(app.monthly_emi)}/mo`;
+      document.getElementById('trkOfficerNotes').textContent = app.officer_notes || 'No underwriter notes logged yet.';
+
+      // Milestone Stepper
+      updateMilestoneStepper(app.status);
+
+      // 2. Maker Audit Profile & Historical Proposals
+      const mkr = makerAudit || {
+        maker_id: app.created_by_id || 5,
+        maker_name: app.created_by_name || 'Hemanth (Maker)',
+        maker_email: app.created_by_email || 'hemanthmanih@gmail.com',
+        total_originated: 1,
+        approved_count: 0,
+        rejected_count: 0,
+        pending_count: 1,
+        total_amount: app.loan_amount,
+        approval_rate: 0,
+        history_loans: [app]
+      };
+
+      document.getElementById('mkrName').textContent = mkr.maker_name;
+      document.getElementById('mkrIdBadge').textContent = `Staff ID #${mkr.maker_id}`;
+      document.getElementById('mkrEmailTag').textContent = `Email: ${mkr.maker_email} • Desk: Retail Loan Origination`;
+
+      document.getElementById('mkrStatTotal').textContent = mkr.total_originated;
+      document.getElementById('mkrStatVolume').textContent = formatCurrency(mkr.total_amount);
+      document.getElementById('mkrStatRate').textContent = `${mkr.approval_rate}%`;
+      document.getElementById('mkrStatApproved').textContent = mkr.approved_count;
+      document.getElementById('mkrStatPending').textContent = mkr.pending_count;
+      document.getElementById('mkrStatRejected').textContent = mkr.rejected_count;
+
+      const loansList = mkr.history_loans || [app];
+      document.getElementById('mkrTableCount').textContent = `${loansList.length} Originated Proposals`;
+
+      const tbody = document.getElementById('mkrHistoryTableBody');
+      tbody.innerHTML = loansList.map(item => `
+        <tr style="${item.application_number === app.application_number ? 'background: rgba(6, 182, 212, 0.08);' : ''}">
+          <td style="font-family: var(--st-font-mono); font-weight: 700; color: #fff;">
+            ${item.application_number}
+            ${item.application_number === app.application_number ? '<span style="color: var(--st-cyan); font-size: 0.72rem; margin-left: 4px;">● (Current)</span>' : ''}
+          </td>
+          <td>${item.applicant_name}</td>
+          <td>${item.loan_type}</td>
+          <td style="color: #34d399; font-weight: 700;">${formatCurrency(item.loan_amount)}</td>
+          <td>
+            <span class="status-pill status-${item.status}" style="font-size: 0.7rem;">${item.status.replace(/_/g, ' ')}</span>
+          </td>
+          <td style="color: var(--st-text-muted); font-size: 0.76rem;">${new Date(item.created_at).toLocaleDateString()}</td>
+          <td>
+            <button class="quick-chip" onclick="executeTrackerSearch('${item.application_number}')">
+              Inspect ➔
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      // 3. Status Timeline
+      const timeline = document.getElementById('trkTimeline');
+      timeline.innerHTML = '';
+      if (history && history.length > 0) {
+        history.forEach((h, index) => {
+          const isLast = index === history.length - 1;
+          const div = document.createElement('div');
+          div.className = `timeline-item ${isLast ? 'active' : ''}`;
+          div.innerHTML = `
+            <div class="timeline-dot"></div>
+            <div class="timeline-header">
+              <span class="timeline-title">${h.status.replace(/_/g, ' ')} (${h.changed_by || 'System'})</span>
+              <span class="timeline-time">${new Date(h.created_at).toLocaleString()}</span>
+            </div>
+            <div class="timeline-comment">${h.comment || 'Status transitioned.'}</div>
+          `;
+          timeline.appendChild(div);
+        });
+      } else {
+        timeline.innerHTML = '<div style="font-size: 0.82rem; color: var(--st-text-muted);">Initial application proposal recorded.</div>';
+      }
+    }
+
+    function updateMilestoneStepper(status) {
+      const steps = [
+        document.getElementById('tStep1'),
+        document.getElementById('tStep2'),
+        document.getElementById('tStep3'),
+        document.getElementById('tStep4'),
+        document.getElementById('tStep5')
+      ];
+
+      steps.forEach(s => s.className = 'track-step');
+
+      const statusMap = {
+        'SUBMITTED': 1,
+        'PENDING_APPROVAL': 2,
+        'UNDER_REVIEW': 2,
+        'DOCS_VERIFICATION': 3,
+        'APPROVED': 4,
+        'DISBURSED': 5,
+        'REJECTED': 2
+      };
+
+      const level = statusMap[status] || 1;
+
+      steps.forEach((stepEl, idx) => {
+        const stepNum = idx + 1;
+        if (stepNum < level) {
+          stepEl.className = 'track-step done';
+        } else if (stepNum === level) {
+          stepEl.className = 'track-step current';
+        }
+      });
+
+      if (status === 'REJECTED') {
+        const s4 = document.getElementById('tStep4');
+        if (s4) s4.querySelector('.track-step-text').textContent = 'Declined / Rejected';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin & Analytics Console — Loan Portfolio Management | ApexLoan ®</title>
+  <meta name="description" content="Role-based loan console supporting Maker origination, Checker authorization, and comprehensive loan portfolio analytics.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/stakent.css">
+  <script>
+    // Strict Auth Guard: Admin page is restricted to Admin
+    (function() {
+      const token = localStorage.getItem('apex_jwt_token');
+      const rawUser = localStorage.getItem('apex_user');
+      if (!token || !rawUser) {
+        sessionStorage.setItem('auth_error_message', '🔒 Please sign in to access Admin Analytics.');
+        sessionStorage.setItem('auth_target_url', window.location.pathname);
+        window.location.replace('auth.html');
+        return;
+      }
+      try {
+        const u = JSON.parse(rawUser);
+        const role = (u.role || '').toUpperCase();
+        if (role === 'MAKER') {
+          sessionStorage.setItem('auth_error_message', '⛔ Access Denied: Admin Analytics is restricted. Redirected to Maker Console.');
+          window.location.replace('maker.html');
+        } else if (role === 'CHECKER' || role === 'OFFICER') {
+          sessionStorage.setItem('auth_error_message', '⛔ Access Denied: Admin Analytics is restricted. Redirected to Checker Desk.');
+          window.location.replace('checker.html');
+        } else if (role !== 'ADMIN') {
+          window.location.replace('auth.html');
+        }
+      } catch(e) {
+        window.location.replace('auth.html');
+      }
+    })();
+  </script>
+  <style>
+    .status-filter-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .filter-tab-chip {
+      padding: 7px 14px;
+      border-radius: var(--st-radius-sm);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--st-border);
+      color: var(--st-text-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--st-transition-fast);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+    .filter-tab-chip:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+    .filter-tab-chip.active {
+      background: var(--st-purple-grad);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 4px 12px var(--st-purple-glow);
+    }
+    .badge-count {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.15);
+      font-weight: 700;
+    }
+    .data-table-container {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--st-border);
+      border-radius: var(--st-radius-lg);
+      background: rgba(16, 20, 34, 0.7);
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+    .data-table th {
+      padding: 14px 16px;
+      background: rgba(12, 16, 28, 0.95);
+      color: var(--st-text-muted);
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--st-border);
+    }
+    .data-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--st-text-secondary);
+    }
+    .data-table tr:hover td {
+      background: rgba(255, 255, 255, 0.03);
+      color: #fff;
+    }
+  </style>
+</head>
+<body class="stakent-body" data-roles="ADMIN">
+
+  <div class="st-layout">
+
+    <!-- ==========================================
+         LEFT SIDEBAR
+         ========================================== -->
+    <aside class="st-sidebar" id="appSidebar">
+      <!-- Brand Logo -->
+      <div class="st-brand">
+        <div class="st-brand-left">
+          <div class="st-logo-icon">⚡</div>
+          <div>
+            <div class="st-brand-title">ApexLoan <span class="st-brand-reg">®</span></div>
+            <div class="st-brand-sub">Management Console</div>
+          </div>
+        </div>
+        <button class="st-brand-selector" title="Switch Branch" onclick="showToast('Active Node: ApexLoan Production Node')">⇅</button>
+      </div>
+
+      <!-- Segment Switch -->
+      <div class="st-segment-switch">
+        <button class="st-segment-btn active" id="segBtn1" onclick="window.location.href='admin.html'">Portfolio Audit</button>
+        <button class="st-segment-btn" id="segBtn2" onclick="window.location.href='checker.html'">Sanction Queue</button>
+      </div>
+
+      <!-- Main Navigation Menu -->
+      <nav class="st-nav-menu" id="appNavMenu">
+        <!-- Role-filtered nav injected at runtime -->
+      </nav>
+
+      <!-- Active Proposals Collapsible List -->
+      <div class="st-section-title">
+        <div style="display: flex; align-items: center;">
+          <span>Recent Proposals</span>
+          <span class="st-count-pill" id="activeCountPill">0</span>
+        </div>
+        <button style="color: var(--st-text-muted); font-size: 0.75rem;">▲</button>
+      </div>
+
+      <div class="st-active-list" id="sidebarActiveList">
+        <!-- Rendered via stakent.js from MySQL -->
+      </div>
+
+      <!-- Bottom Card -->
+      <div class="st-sidebar-bottom">
+        <div class="st-super-card" onclick="window.location.href='auth.html'">
+          <div class="st-super-icon">🛡️</div>
+          <div class="st-super-text">
+            <h5>Four-Eyes Protocol</h5>
+            <p>Strict Dual Authorization</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================
+         MAIN VIEWPORT
+         ========================================== -->
+    <main class="st-main">
+
+      <!-- Top Header Navigation -->
+      <header class="st-header">
+        <div class="st-header-left">
+          <button class="st-menu-btn" id="mobileMenuBtn" aria-label="Toggle Navigation">☰</button>
+
+          <!-- User Profile Chip -->
+          <div class="st-profile-chip" id="userProfileChip" onclick="window.location.href='auth.html'">
+            <div class="st-profile-avatar" id="headerAvatar" style="background: linear-gradient(135deg, #7047eb, #3b82f6);">AD</div>
+            <div class="st-profile-info">
+              <span class="st-profile-tag" id="headerTag">@admin</span>
+              <span class="st-pro-tag" id="headerRole">CONSOLE</span>
+              <span class="st-profile-name" id="headerName">Management Console</span>
+            </div>
+          </div>
+
+          <!-- Deposit Action Button -->
+          <a href="index.html" class="st-btn-deposit" style="text-decoration: none;">
+            <span>Deposit</span>
+            <span style="font-size: 0.85rem;">🔒</span>
+          </a>
+        </div>
+
+        <div class="st-header-right">
+          <button class="btn btn-secondary btn-sm" onclick="loadApplications()" id="btnRefresh" style="display: flex; align-items: center; gap: 6px;">
+            ↻ Refresh Portfolio
+          </button>
+
+          <a href="checker.html" class="st-icon-btn" title="Notifications" style="text-decoration: none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="st-badge-dot">2</span>
+          </a>
+
+          <div class="st-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" placeholder="Search by Loan ID..." id="headerSearchInput" onkeydown="if(event.key==='Enter') window.location.href='track.html?app='+encodeURIComponent(this.value.trim());">
+            <kbd>⌘</kbd>
+          </div>
+
+          <button class="st-btn-settings" onclick="logout()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <div class="st-content">
+
+        <!-- Role Action Banner -->
+        <div id="roleActionBanner" class="portal-role-banner admin">
+          <!-- Injected dynamically based on role -->
+        </div>
+
+        <!-- KPI Portfolio Metrics Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px;">
+          <div class="stat-mini-card" style="padding: 18px 16px;">
+            <div class="stat-mini-num" id="statTotalApps" style="color: #fff; font-size: 1.8rem;">0</div>
+            <div class="stat-mini-label" style="margin-top: 4px;">Total Proposals</div>
+          </div>
+          <div class="stat-mini-card" style="padding: 18px 16px;">
+            <div class="stat-mini-num" id="statTotalAmount" style="color: #34d399; font-size: 1.8rem;">₹0</div>
+            <div class="stat-mini-label" style="margin-top: 4px;">Total Portfolio Sanctioned</div>
+          </div>
+          <div class="stat-mini-card" style="padding: 18px 16px; cursor: pointer;" onclick="setStatusTab('PENDING_APPROVAL', document.querySelector('.filter-tab-chip:nth-child(2)'))">
+            <div class="stat-mini-num" id="statAwaitingApps" style="color: #fbbf24; font-size: 1.8rem;">0</div>
+            <div class="stat-mini-label" style="margin-top: 4px;">Pending Checker Review</div>
+          </div>
+          <div class="stat-mini-card" style="padding: 18px 16px;">
+            <div class="stat-mini-num" id="statApprovedApps" style="color: #38bdf8; font-size: 1.8rem;">0</div>
+            <div class="stat-mini-label" style="margin-top: 4px;">Approved & Disbursed</div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Card -->
+        <div class="st-showcase-panel" style="padding: 20px 24px; margin-bottom: 24px;">
+          <!-- Quick Status Tabs -->
+          <div class="status-filter-tabs" id="statusFilterTabs">
+            <button type="button" class="filter-tab-chip active" onclick="setStatusTab('ALL', this)">
+              📋 All Loans <span class="badge-count" id="tabCountAll">0</span>
+            </button>
+            <button type="button" class="filter-tab-chip" onclick="setStatusTab('PENDING_APPROVAL', this)">
+              ⏳ Pending Approval <span class="badge-count" id="tabCountPending">0</span>
+            </button>
+            <button type="button" class="filter-tab-chip" onclick="setStatusTab('UNDER_REVIEW', this)">
+              🔍 Under Review <span class="badge-count" id="tabCountReview">0</span>
+            </button>
+            <button type="button" class="filter-tab-chip" onclick="setStatusTab('APPROVED', this)">
+              ✅ Approved <span class="badge-count" id="tabCountApproved">0</span>
+            </button>
+            <button type="button" class="filter-tab-chip" onclick="setStatusTab('REJECTED', this)">
+              ❌ Rejected <span class="badge-count" id="tabCountRejected">0</span>
+            </button>
+            <button type="button" class="filter-tab-chip" onclick="setStatusTab('DISBURSED', this)">
+              💸 Disbursed <span class="badge-count" id="tabCountDisbursed">0</span>
+            </button>
+          </div>
+
+          <!-- Search & Select Grid -->
+          <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
+            <div style="flex: 1; min-width: 260px;">
+              <input type="text" class="form-control" id="tableSearch" placeholder="Filter by Loan Reference, Customer ID, Name, Phone, PAN..." oninput="debounceSearch()">
+            </div>
+            <div style="min-width: 170px;">
+              <select class="form-control" id="tableLoanTypeFilter" onchange="applyFilters()">
+                <option value="ALL">All Loan Categories</option>
+                <option value="Personal Loan">Personal Loan</option>
+                <option value="Home Loan">Home Loan</option>
+                <option value="Auto Loan">Auto Loan</option>
+                <option value="Education Loan">Education Loan</option>
+                <option value="Business Loan">Business Loan</option>
+              </select>
+            </div>
+            <div id="roleQuickActionContainer" style="display: flex; gap: 8px;">
+              <!-- Quick actions based on role -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Loan Portfolio Data Table -->
+        <div class="data-table-container">
+          <table class="data-table" id="applicationsTable">
+            <thead>
+              <tr>
+                <th>Reference ID</th>
+                <th>Applicant Name</th>
+                <th>Loan Category</th>
+                <th>Loan Amount</th>
+                <th>Tenure</th>
+                <th>Monthly EMI</th>
+                <th>Current Status</th>
+                <th>Submission Date</th>
+                <th id="thActionHeader" style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="applicationsTableBody">
+              <tr>
+                <td colspan="9" style="text-align: center; padding: 40px; color: var(--st-text-muted);">
+                  Loading portfolio records from MySQL...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Review & Decision Modal (Maker-Checker Workflow) -->
+  <div class="st-modal-overlay modal-overlay" id="reviewModal">
+    <div class="st-modal modal-content" style="max-width: 620px;">
+      <div class="st-modal-header modal-header">
+        <h3 class="st-modal-title modal-title">
+          Review & Decision Desk — <span id="modalAppNumber" style="font-family: var(--st-font-mono);">LN-2026-XXXX</span>
+        </h3>
+        <button class="st-modal-close modal-close" onclick="closeReviewModal()">✕</button>
+      </div>
+
+      <form id="reviewDecisionForm" onsubmit="event.preventDefault(); submitStatusUpdate();">
+        <input type="hidden" id="modalLoanId">
+        <input type="hidden" id="modalApplicantName">
+        <input type="hidden" id="officerNameInput" value="Authorized Officer">
+
+        <!-- Applicant Snapshot -->
+        <div id="modalLoanDetails" style="background: rgba(14,18,32,0.85); border: 1px solid var(--st-border); border-radius: var(--st-radius-md); padding: 14px; margin-bottom: 16px; font-size: 0.82rem;">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- Quick Decision Buttons -->
+        <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnChoiceApprove" onclick="selectDecision('APPROVED')" style="flex: 1; border-color: #34d399; color: #34d399;">
+            ✅ Sanction / Approve
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnChoiceReject" onclick="selectDecision('REJECTED')" style="flex: 1; border-color: #fb7185; color: #fb7185;">
+            ❌ Decline / Reject
+          </button>
+        </div>
+
+        <!-- Rejection Warning Alert -->
+        <div id="rejectionAlertBox" style="display: none; background: rgba(244,63,94,0.12); border: 1px solid rgba(244,63,94,0.35); border-radius: var(--st-radius-sm); padding: 10px 14px; font-size: 0.8rem; color: #fb7185; margin-bottom: 16px;">
+          ⚠️ <strong>Mandatory Reason Required:</strong> Checker policy requires a clear justification for declining a loan.
+        </div>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" for="newStatusSelect">Workflow Status</label>
+          <select class="form-control" id="newStatusSelect" onchange="onModalStatusChange()" required>
+            <option value="UNDER_REVIEW">UNDER REVIEW (Appraisal in progress)</option>
+            <option value="DOCS_VERIFICATION">DOCS VERIFICATION (KYC/Income pending)</option>
+            <option value="AWAITING_APPROVAL">AWAITING APPROVAL (Escalated to Checker)</option>
+            <option value="APPROVED">APPROVED (Credit sanction authorized)</option>
+            <option value="REJECTED">REJECTED (Declined with reason)</option>
+            <option value="DISBURSED">DISBURSED (Funds released)</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" for="officerNotesInput">
+            Audit Trail Notes / Remarks & Reason
+          </label>
+          <textarea class="form-control" id="officerNotesInput" rows="3" placeholder="Enter appraisal notes or findings for the audit log..." required></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="closeReviewModal()">Cancel</button>
+          <button type="submit" class="st-btn-connect-wallet" id="btnSaveStatus" style="padding: 10px 22px;">
+            Save Decision ➔
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Customer Master Search Modal -->
+  <div class="st-modal-overlay" id="customerSearchModal">
+    <div class="st-modal" style="max-width: 640px;">
+      <div class="st-modal-header">
+        <h3 class="st-modal-title">🔍 Customer Master Lookup</h3>
+        <button class="st-modal-close" onclick="closeCustomerSearchModal()">✕</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <input type="text" class="form-control" id="modalCustSearchInput" placeholder="Search by Customer ID (e.g. CUST-1001) or Name (e.g. Priya Verma)..." oninput="searchModalCustomers()">
+      </div>
+
+      <div id="modalCustSearchResults" style="max-height: 320px; overflow-y: auto; margin-bottom: 16px; border: 1px solid var(--st-border); border-radius: var(--st-radius-md); padding: 8px;">
+        <!-- Injected dynamically -->
+      </div>
+
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="closeCustomerSearchModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast -->
+  <div class="st-toast" id="stakentToast"></div>
+
+  <!-- Scripts -->
+  <script src="js/main.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/authGuard.js"></script>
+</body>
+</html>

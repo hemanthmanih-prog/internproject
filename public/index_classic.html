@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ApexLoan — Smart Loan Management & Instant Approvals</title>
+  <meta name="description" content="Apply for personal, home, auto, and education loans with instant EMI calculation, transparent rates, and real-time MySQL-backed status tracking.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- MySQL Warning Banner (if credentials pending) -->
+  <div id="dbAlertBanner" class="db-alert-banner" style="display: none;"></div>
+
+  <!-- Navbar -->
+  <header>
+    <nav class="navbar">
+      <div class="container nav-container">
+        <div class="nav-brand-group">
+          <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Open Navigation Menu" title="Open Navigation Menu">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+          </button>
+          <a href="index.html" class="brand-logo" id="navLogo">
+            <div class="brand-icon">⚡</div>
+            <span>Apex<span class="brand-highlight">Loan</span></span>
+          </a>
+        </div>
+
+        <div class="nav-actions">
+          <div id="dbStatusBadge" class="db-status-badge">
+            <span class="status-dot"></span> Checking DB...
+          </div>
+          <a href="apply.html" class="btn btn-primary btn-sm" id="navApplyBtn">Apply Now →</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container">
+        <div class="hero-tag">
+          <span>🚀 Instant Approvals backed by MySQL</span>
+        </div>
+        <h1 class="hero-title">
+          Financial Freedom with <span>Smarter Lending</span>
+        </h1>
+        <p class="hero-desc">
+          Empowering your dreams with competitive interest rates starting at 8.40% p.a., minimal paperwork, transparent terms, and lightning-fast digital disbursal.
+        </p>
+
+        <div class="hero-cta">
+          <a href="apply.html" class="btn btn-emerald btn-lg" id="heroApplyBtn">Start Loan Application ➔</a>
+          <a href="track.html" class="btn btn-secondary btn-lg" id="heroTrackBtn">🔍 Track Existing Loan</a>
+        </div>
+
+        <div class="hero-badges">
+          <div class="hero-badge-item">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            <span>Instant Digital Sanction</span>
+          </div>
+          <div class="hero-badge-item">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            <span>Zero Hidden Foreclosure Fees</span>
+          </div>
+          <div class="hero-badge-item">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            <span>Real-time MySQL Database Audit</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loan Products Section -->
+    <section class="container" id="products" style="padding: 40px 0 60px;">
+      <div class="section-header">
+        <span class="section-tag">Explore Tailored Solutions</span>
+        <h2 class="section-title">Our Loan Products</h2>
+        <p class="section-desc">Choose from flexible loan structures designed to match your specific financial aspirations.</p>
+      </div>
+
+      <div class="products-grid">
+        <!-- Personal Loan -->
+        <div class="product-card">
+          <div class="product-icon icon-personal">💼</div>
+          <h3 class="product-title">Personal Loan</h3>
+          <span class="product-rate">From 11.50% p.a.</span>
+          <p class="product-desc">Unsecured funding for travel, weddings, emergencies, or medical needs with zero collateral required.</p>
+          <ul class="product-features">
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Up to ₹25,00,000</li>
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Flexible 12 to 60 Months tenure</li>
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Disbursal within 24 hours</li>
+          </ul>
+          <a href="apply.html?type=Personal+Loan" class="btn btn-secondary btn-sm" id="applyPersonalBtn">Apply Personal ➔</a>
+        </div>
+
+        <!-- Home Loan -->
+        <div class="product-card">
+          <div class="product-icon icon-home">🏡</div>
+          <h3 class="product-title">Home Loan</h3>
+          <span class="product-rate">From 8.40% p.a.</span>
+          <p class="product-desc">Own your dream home or finance property renovation with our lowest borrowing interest rates.</p>
+          <ul class="product-features">
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Up to ₹1,50,00,000</li>
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Tenure up to 30 Years</li>
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Tax Benefits under Sec 80C & 24(b)</li>
+          </ul>
+          <a href="apply.html?type=Home+Loan" class="btn btn-secondary btn-sm" id="applyHomeBtn">Apply Home ➔</a>
+        </div>
+
+        <!-- Auto Loan -->
+        <div class="product-card">
+          <div class="product-icon icon-auto">🚗</div>
+          <h3 class="product-title">Auto / Vehicle Loan</h3>
+          <span class="product-rate">From 9.25% p.a.</span>
+          <p class="product-desc">Drive home your dream car or two-wheeler with up to 90% on-road financing and instant dealer sanction.</p>
+          <ul class="product-features">
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Up to ₹35,00,000</li>
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Flexible terms up to 7 Years</li>
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Quick paperless verification</li>
+          </ul>
+          <a href="apply.html?type=Auto+Loan" class="btn btn-secondary btn-sm" id="applyAutoBtn">Apply Auto ➔</a>
+        </div>
+
+        <!-- Education Loan -->
+        <div class="product-card">
+          <div class="product-icon icon-edu">🎓</div>
+          <h3 class="product-title">Education Loan</h3>
+          <span class="product-rate">From 8.90% p.a.</span>
+          <p class="product-desc">Support your academic ambitions in premier Indian and foreign universities with moratorium flexibility.</p>
+          <ul class="product-features">
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Covers 100% Tuition & Living Costs</li>
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Repayment begins after graduation</li>
+            <li><svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Tax benefit under Section 80E</li>
+          </ul>
+          <a href="apply.html?type=Education+Loan" class="btn btn-secondary btn-sm" id="applyEduBtn">Apply Education ➔</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive EMI Calculator -->
+    <section class="calc-section" id="calculator">
+      <div class="container">
+        <div class="glass-card">
+          <div class="section-header" style="margin-bottom: 32px;">
+            <span class="section-tag">Interactive Calculator</span>
+            <h2 class="section-title">Plan Your Monthly Outflow</h2>
+            <p class="section-desc">Adjust the loan parameters below to immediately view your monthly installment and total payable schedule.</p>
+          </div>
+
+          <div class="calc-wrapper">
+            <!-- Sliders -->
+            <div class="calc-inputs">
+              <!-- Amount -->
+              <div class="calc-input-group">
+                <div class="calc-label-row">
+                  <span class="calc-label">Loan Amount</span>
+                  <span class="calc-value-display" id="displayLoanAmount">₹5,00,000</span>
+                </div>
+                <input type="range" class="range-slider" id="sliderAmount" min="50000" max="10000000" step="25000" value="500000">
+                <div class="calc-range-limits">
+                  <span>₹50,000</span>
+                  <span>₹1,00,00,000</span>
+                </div>
+              </div>
+
+              <!-- Interest Rate -->
+              <div class="calc-input-group">
+                <div class="calc-label-row">
+                  <span class="calc-label">Annual Interest Rate</span>
+                  <span class="calc-value-display" id="displayInterestRate">10.50%</span>
+                </div>
+                <input type="range" class="range-slider" id="sliderRate" min="6.0" max="22.0" step="0.25" value="10.50">
+                <div class="calc-range-limits">
+                  <span>6.0%</span>
+                  <span>22.0%</span>
+                </div>
+              </div>
+
+              <!-- Tenure Months -->
+              <div class="calc-input-group">
+                <div class="calc-label-row">
+                  <span class="calc-label">Tenure (Duration)</span>
+                  <span class="calc-value-display" id="displayTenure">36 Months (3 Yrs)</span>
+                </div>
+                <input type="range" class="range-slider" id="sliderTenure" min="6" max="360" step="6" value="36">
+                <div class="calc-range-limits">
+                  <span>6 Months</span>
+                  <span>30 Years (360 Mos)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Result Card -->
+            <div class="calc-result-box">
+              <span class="emi-main-title">Estimated Monthly EMI</span>
+              <div class="emi-main-amount" id="resultEmi">₹16,253</div>
+
+              <div class="calc-breakdown">
+                <div class="breakdown-row">
+                  <span class="breakdown-label">Principal Amount</span>
+                  <span class="breakdown-val" id="resultPrincipal">₹5,00,000</span>
+                </div>
+                <div class="breakdown-row">
+                  <span class="breakdown-label">Total Interest Due</span>
+                  <span class="breakdown-val" id="resultTotalInterest">₹85,108</span>
+                </div>
+                <div class="breakdown-row" style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 10px;">
+                  <span class="breakdown-label">Total Amount Payable</span>
+                  <span class="breakdown-val" style="color: var(--primary-light);" id="resultTotalPayable">₹5,85,108</span>
+                </div>
+              </div>
+
+              <button class="btn btn-primary" id="btnApplyCustom" style="width: 100%;">
+                Apply with this Plan ➔
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works 4-step workflow -->
+    <section class="container" style="padding: 40px 0 80px;">
+      <div class="section-header">
+        <span class="section-tag">Seamless Journey</span>
+        <h2 class="section-title">How It Works</h2>
+        <p class="section-desc">Experience our modern 4-step digital lending flow from application to disbursement.</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px;">
+        <div class="glass-card" style="text-align: center; padding: 28px 20px;">
+          <div style="font-size: 2.2rem; margin-bottom: 12px;">📝</div>
+          <h4 style="font-size: 1.15rem; margin-bottom: 8px;">1. Online Application</h4>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Fill in your employment and income details in under 3 minutes.</p>
+        </div>
+
+        <div class="glass-card" style="text-align: center; padding: 28px 20px;">
+          <div style="font-size: 2.2rem; margin-bottom: 12px;">🔍</div>
+          <h4 style="font-size: 1.15rem; margin-bottom: 8px;">2. Real-time Verification</h4>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Instant data validation and storage in MySQL with a unique tracking code.</p>
+        </div>
+
+        <div class="glass-card" style="text-align: center; padding: 28px 20px;">
+          <div style="font-size: 2.2rem; margin-bottom: 12px;">✅</div>
+          <h4 style="font-size: 1.15rem; margin-bottom: 8px;">3. Officer Sanction</h4>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Underwriters review eligibility with status updates visible on your portal.</p>
+        </div>
+
+        <div class="glass-card" style="text-align: center; padding: 28px 20px;">
+          <div style="font-size: 2.2rem; margin-bottom: 12px;">💸</div>
+          <h4 style="font-size: 1.15rem; margin-bottom: 8px;">4. Fund Disbursal</h4>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Approved funds are transferred directly to your verified bank account.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer style="border-top: 1px solid var(--border-subtle); background: var(--bg-secondary); padding: 48px 0 24px;">
+    <div class="container" style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 32px; margin-bottom: 32px;">
+      <div>
+        <div class="brand-logo" style="margin-bottom: 12px;">
+          <div class="brand-icon">⚡</div>
+          <span>Apex<span class="brand-highlight">Loan</span></span>
+        </div>
+        <p style="font-size: 0.88rem; color: var(--text-muted); max-width: 340px;">
+          Next-generation financial loan management platform powered by Node.js, Express & MySQL.
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 48px; flex-wrap: wrap;">
+        <div>
+          <h5 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: var(--text-white);">Quick Links</h5>
+          <ul style="list-style: none; font-size: 0.88rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px;">
+            <li><a href="apply.html" style="hover: color: #fff;">Apply for Loan</a></li>
+            <li><a href="track.html">Track Application Status</a></li>
+            <li><a href="admin.html">Officer Review Console</a></li>
+          </ul>
+        </div>
+        <div>
+          <h5 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: var(--text-white);">Database Info</h5>
+          <ul style="list-style: none; font-size: 0.88rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px;">
+            <li>Service: MySQL 8.0</li>
+            <li>Database: loan_db</li>
+            <li>Config: .env file</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="container" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 20px; text-align: center; font-size: 0.82rem; color: var(--text-dim);">
+      &copy; 2026 ApexLoan Management System. Built with Node.js & MySQL.
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script>
+    // Live Calculator Logic
+    const sliderAmount = document.getElementById('sliderAmount');
+    const sliderRate = document.getElementById('sliderRate');
+    const sliderTenure = document.getElementById('sliderTenure');
+
+    const displayAmount = document.getElementById('displayLoanAmount');
+    const displayRate = document.getElementById('displayInterestRate');
+    const displayTenure = document.getElementById('displayTenure');
+
+    const resultEmi = document.getElementById('resultEmi');
+    const resultPrincipal = document.getElementById('resultPrincipal');
+    const resultTotalInterest = document.getElementById('resultTotalInterest');
+    const resultTotalPayable = document.getElementById('resultTotalPayable');
+    const btnApplyCustom = document.getElementById('btnApplyCustom');
+
+    function updateCalculator() {
+      const amount = parseFloat(sliderAmount.value);
+      const rate = parseFloat(sliderRate.value);
+      const tenure = parseInt(sliderTenure.value, 10);
+
+      displayAmount.textContent = formatCurrency(amount);
+      displayRate.textContent = rate.toFixed(2) + '%';
+      
+      const years = (tenure / 12).toFixed(tenure % 12 === 0 ? 0 : 1);
+      displayTenure.textContent = `${tenure} Months (${years} ${years == 1 ? 'Yr' : 'Yrs'})`;
+
+      const monthlyRate = (rate / 12) / 100;
+      const factor = Math.pow(1 + monthlyRate, tenure);
+      const emi = (amount * monthlyRate * factor) / (factor - 1);
+      const totalPayable = emi * tenure;
+      const totalInterest = totalPayable - amount;
+
+      resultEmi.textContent = formatCurrency(emi);
+      resultPrincipal.textContent = formatCurrency(amount);
+      resultTotalInterest.textContent = formatCurrency(totalInterest);
+      resultTotalPayable.textContent = formatCurrency(totalPayable);
+    }
+
+    sliderAmount.addEventListener('input', updateCalculator);
+    sliderRate.addEventListener('input', updateCalculator);
+    sliderTenure.addEventListener('input', updateCalculator);
+
+    btnApplyCustom.addEventListener('click', () => {
+      const amount = sliderAmount.value;
+      const tenure = sliderTenure.value;
+      window.location.href = `apply.html?amount=${amount}&tenure=${tenure}`;
+    });
+
+    // Initial run
+    updateCalculator();
+  </script>
+</body>
+</html>

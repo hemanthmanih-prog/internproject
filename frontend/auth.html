@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Staff Sign In — Maker & Checker Authentication | ApexLoan ®</title>
+  <meta name="description" content="Dedicated Maker and Checker banking authentication with Four-Eyes Principle and JWT role segregation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/stakent.css">
+  <style>
+    .auth-tab-btn {
+      flex: 1;
+      padding: 14px 16px;
+      background: rgba(14, 18, 32, 0.7);
+      border: 1px solid var(--st-border);
+      border-radius: var(--st-radius-md);
+      color: var(--st-text-secondary);
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.25s ease;
+    }
+    .auth-tab-btn:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+    .auth-tab-btn.active-maker {
+      background: rgba(6, 182, 212, 0.12);
+      border-color: var(--st-cyan);
+      color: #fff;
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.25);
+    }
+    .auth-tab-btn.active-checker {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: var(--st-green);
+      color: #fff;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+    }
+    .auth-alert-banner {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fecdd3;
+      padding: 12px 16px;
+      border-radius: var(--st-radius-md);
+      font-size: 0.85rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .session-card {
+      background: rgba(16, 20, 34, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--st-radius-md);
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body class="stakent-body">
+
+  <div class="st-layout">
+
+    <!-- ==========================================
+         LEFT SIDEBAR
+         ========================================== -->
+    <aside class="st-sidebar" id="appSidebar">
+      <!-- Brand Logo -->
+      <div class="st-brand">
+        <div class="st-brand-left">
+          <div class="st-logo-icon">⚡</div>
+          <div>
+            <div class="st-brand-title">ApexLoan <span class="st-brand-reg">®</span></div>
+            <div class="st-brand-sub">Staff Authentication Portal</div>
+          </div>
+        </div>
+        <button class="st-brand-selector" title="Switch Branch" onclick="showToast('Active Node: Production Staff Gateway')">⇅</button>
+      </div>
+
+      <!-- Segment Switch -->
+      <div class="st-segment-switch">
+        <button class="st-segment-btn active" id="segBtn1" onclick="setLoginWorkflow('MAKER')">Maker Portal</button>
+        <button class="st-segment-btn" id="segBtn2" onclick="setLoginWorkflow('CHECKER')">Checker Portal</button>
+      </div>
+
+      <!-- Navigation Menu -->
+      <nav class="st-nav-menu">
+        <a href="index.html" class="st-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="3" y="3" width="7" height="7" rx="2"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="2"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="2"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="2"></rect>
+          </svg>
+          <span>Dashboard</span>
+        </a>
+
+        <a href="maker.html" class="st-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M11 4H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          <span>Maker Console</span>
+        </a>
+
+        <a href="checker.html" class="st-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <span>Checker Approval</span>
+        </a>
+
+        <a href="auth.html" class="st-nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
+          <span>Staff Gateway</span>
+        </a>
+      </nav>
+
+      <!-- Active Proposals Collapsible List -->
+      <div class="st-section-title">
+        <div style="display: flex; align-items: center;">
+          <span>Recent Proposals</span>
+          <span class="st-count-pill" id="activeCountPill">0</span>
+        </div>
+        <button style="color: var(--st-text-muted); font-size: 0.75rem;">▲</button>
+      </div>
+
+      <div class="st-active-list" id="sidebarActiveList">
+        <!-- Rendered dynamically from MySQL -->
+      </div>
+
+      <!-- Bottom Card -->
+      <div class="st-sidebar-bottom">
+        <div class="st-super-card">
+          <div class="st-super-icon">🛡️</div>
+          <div class="st-super-text">
+            <h5>Four-Eyes Protocol</h5>
+            <p>Strict Dual Authorization</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================
+         MAIN VIEWPORT
+         ========================================== -->
+    <main class="st-main">
+
+      <!-- Top Header Navigation -->
+      <header class="st-header">
+        <div class="st-header-left">
+          <button class="st-menu-btn" id="mobileMenuBtn" aria-label="Toggle Navigation">☰</button>
+
+          <!-- User Profile Chip -->
+          <div class="st-profile-chip" id="userProfileChip">
+            <div class="st-profile-avatar" id="headerAvatar" style="background: linear-gradient(135deg, #7047eb, #3b82f6);">🔑</div>
+            <div class="st-profile-info">
+              <span class="st-profile-tag" id="headerTag">@gateway</span>
+              <span class="st-pro-tag" id="headerRole">AUTH</span>
+              <span class="st-profile-name" id="headerName">Staff Gateway</span>
+            </div>
+          </div>
+
+          <!-- Deposit Action Button -->
+          <a href="index.html" class="st-btn-deposit" style="text-decoration: none;">
+            <span>Deposit</span>
+            <span style="font-size: 0.85rem;">🔒</span>
+          </a>
+        </div>
+
+        <div class="st-header-right">
+          <a href="checker.html" class="st-icon-btn" title="Notifications" style="text-decoration: none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="st-badge-dot">2</span>
+          </a>
+
+          <div class="st-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" placeholder="Search..." id="headerSearchInput">
+            <kbd>⌘</kbd>
+          </div>
+
+          <button class="st-btn-settings" onclick="showToast('Staff Gateway Security Settings')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span>Settings</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <div class="st-content">
+
+        <!-- Top Section Header -->
+        <div class="st-top-row-header">
+          <div>
+            <div class="st-rec-tag">
+              Enterprise Banking Gateway 🕒 <span class="st-rec-count">Role Segregated</span>
+            </div>
+            <h1 class="st-page-heading">Staff Authentication Portal</h1>
+          </div>
+
+          <div class="st-filter-group">
+            <div class="st-filter-pill" onclick="showToast('256-Bit TLS Encryption Active')">
+              <span>• 256-Bit SSL ▾</span>
+            </div>
+            <div class="st-filter-pill" onclick="showToast('JWT Access Segregation Enforced')">
+              <span>• JWT Segregated ▾</span>
+            </div>
+            <div class="st-filter-pill" onclick="showToast('Audit Trail Logged in MySQL')">
+              <span>• Audit Trail ▾</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-Column Stakent Cards Grid -->
+        <div style="display: grid; grid-template-columns: 1.25fr 1fr; gap: 24px; align-items: start;">
+
+          <!-- Left Column: Login Card -->
+          <div class="st-card" style="padding: 28px;">
+
+            <!-- Error / Alert Banner -->
+            <div id="authAlertBanner" class="auth-alert-banner" style="display: none;">
+              <span style="font-size: 1.2rem;">⚠️</span>
+              <span id="authAlertText">Authentication required to access this portal.</span>
+            </div>
+
+            <!-- Active Session Notice (if already logged in) -->
+            <div id="activeSessionBox" class="session-card" style="display: none;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--st-text-muted);">Currently Logged In:</div>
+                <div style="font-weight: 700; color: #fff; font-size: 0.95rem;" id="sessionUserName">User</div>
+                <div style="font-size: 0.75rem; color: var(--st-cyan);" id="sessionUserRole">Role</div>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="st-btn-upgrade" id="btnContinuePortal" style="padding: 7px 16px; font-size: 0.8rem;">Enter Portal ➔</button>
+                <button class="st-btn-unstake" onclick="logout()" style="padding: 7px 12px; font-size: 0.8rem; color: #fb7185;">Sign Out</button>
+              </div>
+            </div>
+
+            <!-- Brand Header inside card -->
+            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 22px;">
+              <div id="roleIconBadge" style="width: 48px; height: 48px; border-radius: 14px; background: rgba(6, 182, 212, 0.15); border: 1px solid var(--st-cyan); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                🛠️
+              </div>
+              <div>
+                <h3 id="portalHeading" style="font-size: 1.25rem; font-weight: 800; color: #fff; margin: 0;">Maker Portal Login</h3>
+                <p id="portalSubheading" style="font-size: 0.8rem; color: var(--st-text-secondary); margin: 2px 0 0;">Loan Origination & Borrower KYC Documentation Desk</p>
+              </div>
+            </div>
+
+            <!-- Role Segment Switcher (Maker vs Checker) -->
+            <div style="margin-bottom: 18px;">
+              <div class="st-metric-label" style="margin-bottom: 8px;">SELECT LOGIN WORKFLOW</div>
+              <div class="st-segment-switch" style="margin-bottom: 0;">
+                <button type="button" class="st-segment-btn active" id="tabMaker" onclick="setLoginWorkflow('MAKER', true)">
+                  🛠️ Maker Desk (Any Gmail)
+                </button>
+                <button type="button" class="st-segment-btn" id="tabChecker" onclick="setLoginWorkflow('CHECKER', true)">
+                  🛡️ Checker Desk (Authorized Only)
+                </button>
+              </div>
+            </div>
+
+            <!-- Role Workflow Notice -->
+            <div id="roleWorkflowNotice" style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); padding: 12px 14px; border-radius: 12px; font-size: 0.8rem; color: var(--st-text-secondary); margin-bottom: 20px;">
+              🛠️ <strong>MAKER WORKFLOW:</strong> Enter <strong>ANY Gmail and password</strong> to open the Maker Origination Desk.
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="event.preventDefault(); submitLogin();">
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label class="form-label" for="loginEmail" style="color: var(--st-text-secondary); font-size: 0.82rem; font-weight: 600; display: block; margin-bottom: 6px;">Staff Email Address</label>
+                <input type="email" class="form-control" id="loginEmail" value="" placeholder="Enter email address" required autocomplete="username" style="background: #111422; border: 1px solid var(--st-border); border-radius: 12px; color: #fff; padding: 11px 14px; width: 100%; font-size: 0.88rem; outline: none;">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label class="form-label" for="loginPassword" style="color: var(--st-text-secondary); font-size: 0.82rem; font-weight: 600; margin: 0;">Password</label>
+                </div>
+                <input type="password" class="form-control" id="loginPassword" value="" placeholder="Enter password" required autocomplete="current-password" style="background: #111422; border: 1px solid var(--st-border); border-radius: 12px; color: #fff; padding: 11px 14px; width: 100%; font-size: 0.88rem; outline: none;">
+              </div>
+
+              <button type="submit" class="st-btn-connect-wallet" id="btnLoginSubmit" style="width: 100%; padding: 13px; font-size: 0.92rem; font-weight: 700; border-radius: 9999px; margin-bottom: 14px; justify-content: center;">
+                Sign In to Portal ➔
+              </button>
+            </form>
+
+          </div>
+
+          <!-- Right Column: Security Protocol Overview -->
+          <div class="st-promo-card" style="min-height: 480px;">
+            <div>
+              <div class="st-promo-top">
+                <div class="st-promo-brand">
+                  <span>ApexLoan</span>
+                  <span style="font-size: 0.7rem; color: #a78bfa;">®</span>
+                </div>
+                <span class="st-promo-tag">Tier 1 Security</span>
+              </div>
+              <h3 class="st-promo-heading">Four-Eyes Banking Protocol</h3>
+              <p class="st-promo-desc">
+                In strict compliance with Basel and RBI dual-authorization requirements, loan proposal origination is segregated from final authorization. Checkers cannot originate loans; Makers cannot authorize their own proposals.
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 12px; margin: 20px 0;">
+                <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.04); padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+                  <span style="font-size: 1.2rem;">🛠️</span>
+                  <div>
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #fff;">Maker Workspace</div>
+                    <div style="font-size: 0.74rem; color: var(--st-text-muted);">Proposals, Amortization, Document Verification</div>
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.04); padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+                  <span style="font-size: 1.2rem;">🛡️</span>
+                  <div>
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #fff;">Checker Workspace</div>
+                    <div style="font-size: 0.74rem; color: var(--st-text-muted);">Sanctions, Risk Review, Maker ID Audit Profile</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="st-promo-actions">
+              <button class="st-btn-connect-wallet" onclick="setLoginWorkflow('MAKER')">
+                <span>Select Maker Desk</span>
+                <span>🛠️</span>
+              </button>
+              <button class="st-btn-enter-address" onclick="setLoginWorkflow('CHECKER')">
+                <span>Select Checker Desk</span>
+                <span>🛡️</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Floating Toast -->
+  <div class="st-toast" id="stakentToast"></div>
+
+  <!-- Scripts -->
+  <script src="js/main.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    let activeWorkflowRole = 'MAKER';
+
+    function setLoginWorkflow(role, showToastNotice = false) {
+      activeWorkflowRole = role;
+      const tabMaker = document.getElementById('tabMaker');
+      const tabChecker = document.getElementById('tabChecker');
+      const heading = document.getElementById('portalHeading');
+      const subheading = document.getElementById('portalSubheading');
+      const badge = document.getElementById('roleIconBadge');
+      const notice = document.getElementById('roleWorkflowNotice');
+      const submitBtn = document.getElementById('btnLoginSubmit');
+      const emailInput = document.getElementById('loginEmail');
+      const passInput = document.getElementById('loginPassword');
+
+      if (role === 'MAKER') {
+        tabMaker.className = 'auth-tab-btn active-maker';
+        tabChecker.className = 'auth-tab-btn';
+        badge.innerHTML = '🛠️';
+        badge.style.background = 'rgba(6, 182, 212, 0.15)';
+        badge.style.borderColor = 'var(--st-cyan)';
+        heading.textContent = 'Maker Portal Login';
+        subheading.textContent = 'Loan Origination & Borrower KYC Documentation Desk';
+        notice.style.borderLeftColor = 'var(--st-cyan)';
+        notice.style.background = 'rgba(6, 182, 212, 0.1)';
+        notice.innerHTML = '🛠️ <strong>MAKER WORKFLOW:</strong> Enter <strong>ANY valid Gmail address (@gmail.com) and password</strong> to open the Maker Console.';
+        emailInput.value = '';
+        passInput.value = '';
+        emailInput.placeholder = 'Enter Gmail address (e.g. user@gmail.com)';
+        submitBtn.textContent = 'Sign In to Maker Console ➔';
+        submitBtn.style.background = 'linear-gradient(135deg, #06b6d4, #3b82f6)';
+        if (showToastNotice) showToast('Switched to MAKER login workflow', 'info');
+      } else {
+        tabMaker.className = 'auth-tab-btn';
+        tabChecker.className = 'auth-tab-btn active-checker';
+        badge.innerHTML = '🛡️';
+        badge.style.background = 'rgba(16, 185, 129, 0.15)';
+        badge.style.borderColor = 'var(--st-green)';
+        heading.textContent = 'Checker Portal Login';
+        subheading.textContent = 'Credit Sanction, Risk Review & Four-Eyes Approvals Desk';
+        notice.style.borderLeftColor = 'var(--st-green)';
+        notice.style.background = 'rgba(16, 185, 129, 0.1)';
+        notice.innerHTML = '🛡️ <strong>CHECKER WORKFLOW:</strong> Strictly requires authorized Checker email and password to open.';
+        emailInput.value = '';
+        passInput.value = '';
+        emailInput.placeholder = 'Enter authorized Checker email';
+        submitBtn.textContent = 'Sign In to Checker Desk ➔';
+        submitBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        if (showToastNotice) showToast('Switched to CHECKER login workflow', 'info');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check for redirect reason / alert message
+      const alertMsg = sessionStorage.getItem('auth_error_message');
+      if (alertMsg) {
+        sessionStorage.removeItem('auth_error_message');
+        const alertBanner = document.getElementById('authAlertBanner');
+        const alertText = document.getElementById('authAlertText');
+        alertText.textContent = alertMsg;
+        alertBanner.style.display = 'flex';
+      }
+
+      // Check if user is already logged in
+      const user = getCurrentUser();
+      const token = getAuthToken();
+      if (user && token) {
+        const sessionBox = document.getElementById('activeSessionBox');
+        const sessionName = document.getElementById('sessionUserName');
+        const sessionRole = document.getElementById('sessionUserRole');
+        const btnContinue = document.getElementById('btnContinuePortal');
+
+        sessionName.textContent = user.name || 'Active User';
+        sessionRole.textContent = `Role: ${(user.role || '').toUpperCase()}`;
+        sessionBox.style.display = 'flex';
+
+        btnContinue.onclick = () => {
+          const r = (user.role || '').toUpperCase();
+          if (r === 'CHECKER' || r === 'OFFICER') window.location.href = 'checker.html';
+          else window.location.href = 'maker.html';
+        };
+      }
+
+      setLoginWorkflow('MAKER', false);
+    });
+
+    // Custom login callback for role-exclusive routing
+    window._onLoginSuccess = function(user) {
+      const role = (user.role || '').toUpperCase();
+      setTimeout(() => {
+        if (role === 'CHECKER' || role === 'OFFICER') {
+          window.location.replace('checker.html');
+        } else if (role === 'MAKER') {
+          window.location.replace('maker.html');
+        } else if (role === 'ADMIN') {
+          window.location.replace('admin.html');
+        } else {
+          window.location.replace('maker.html');
+        }
+      }, 600);
+    };
+  </script>
+</body>
+</html>

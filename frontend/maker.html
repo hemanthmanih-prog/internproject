@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maker Portal — Loan Origination | ApexLoan ®</title>
+  <meta name="description"
+    content="Maker portal for originating and submitting loan applications for Checker verification and approval under Four-Eyes Principle.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/stakent.css">
+  <script>
+    // Pre-render Auth Guard — any authenticated user can access Maker page
+    (function () {
+      var token = localStorage.getItem('apex_jwt_token');
+      var rawUser = localStorage.getItem('apex_user');
+      if (!token || !rawUser) {
+        sessionStorage.setItem('auth_error_message', '🔒 Please sign in to access the Maker Console.');
+        sessionStorage.setItem('auth_target_url', window.location.pathname);
+        window.location.replace('auth.html');
+        return;
+      }
+    })();
+  </script>
+</head>
+
+<body class="stakent-body" data-roles="MAKER,ALL">
+
+  <div class="st-layout">
+
+    <!-- ==========================================
+         LEFT SIDEBAR
+         ========================================== -->
+    <aside class="st-sidebar" id="appSidebar">
+      <!-- Brand Logo & Switcher -->
+      <div class="st-brand">
+        <div class="st-brand-left">
+          <div class="st-logo-icon">⚡</div>
+          <div>
+            <div class="st-brand-title">ApexLoan <span class="st-brand-reg">®</span></div>
+            <div class="st-brand-sub">Maker Origination Desk</div>
+          </div>
+        </div>
+        <button class="st-brand-selector" title="Switch Branch"
+          onclick="showToast('Active Node: ApexLoan Production Node')">⇅</button>
+      </div>
+
+      <!-- Segment Switch -->
+      <div class="st-segment-switch">
+        <button class="st-segment-btn active" id="segBtn1" onclick="window.location.href='maker.html'">Retail
+          Origination</button>
+        <button class="st-segment-btn" id="segBtn2" onclick="window.location.href='maker.html'">Corporate Loans</button>
+      </div>
+
+      <!-- Main Navigation Menu -->
+      <nav class="st-nav-menu" id="appNavMenu">
+        <!-- Role-filtered nav injected at runtime -->
+      </nav>
+
+      <!-- Active Originations Collapsible List -->
+      <div class="st-section-title">
+        <div style="display: flex; align-items: center;">
+          <span>Recent Originations</span>
+          <span class="st-count-pill" id="activeCountPill">0</span>
+        </div>
+        <button style="color: var(--st-text-muted); font-size: 0.75rem;">▲</button>
+      </div>
+
+      <div class="st-active-list" id="sidebarActiveList">
+        <!-- Rendered via stakent.js from MySQL -->
+      </div>
+
+      <!-- Bottom Card -->
+      <div class="st-sidebar-bottom">
+        <div class="st-super-card" onclick="window.location.href='maker.html'">
+          <div class="st-super-icon">🛠️</div>
+          <div class="st-super-text">
+            <h5>Maker Guidelines</h5>
+            <p>Originate & Verify Borrower KYC</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+    <!-- ==========================================
+         MAIN VIEWPORT
+         ========================================== -->
+    <main class="st-main">
+      <!-- Top Header Navigation -->
+      <header class="st-header">
+        <div class="st-header-left">
+          <button class="st-menu-btn" id="mobileMenuBtn" aria-label="Toggle Navigation">☰</button>
+          <!-- User Profile Chip -->
+          <div class="st-profile-chip" id="userProfileChip" onclick="logout()" title="Click to Sign Out">
+            <div class="st-profile-avatar" id="headerAvatar"
+              style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">DM</div>
+            <div class="st-profile-info">
+              <span class="st-profile-tag" id="headerTag">@maker</span>
+              <span class="st-pro-tag" id="headerRole">MAKER</span>
+              <span class="st-profile-name" id="headerName">David Miller</span>
+            </div>
+          </div>
+          <!-- Action Button: Originate Proposal ⚡ (Stakent white pill) -->
+          <a href="#originate" class="st-btn-deposit" style="text-decoration: none;"
+            onclick="document.getElementById('loanAmount').focus();">
+            <span>Originate</span>
+            <span style="font-size: 0.85rem;">⚡</span>
+          </a>
+        </div>
+        <div class="st-header-right">
+          <a href="checker.html" class="st-icon-btn" title="Pending Approvals" style="text-decoration: none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="st-badge-dot">2</span>
+          </a>
+          <div class="st-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" placeholder="Search proposals..." id="headerSearchInput"
+              onkeydown="if(event.key==='Enter') filterMyLoans(this.value.trim());">
+            <kbd>⌘</kbd>
+          </div>
+          <button class="st-btn-settings" onclick="logout()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </header>
+      <!-- Main Content Container -->
+      <div class="st-content">
+        <!-- Access Guard (if not authenticated) -->
+        <div id="accessGuard"
+          style="display: none; padding: 40px; text-align: center; background: rgba(16, 20, 34, 0.75); border: 1px solid var(--st-border); border-radius: var(--st-radius-xl); margin-bottom: 24px;">
+          <div style="font-size: 3rem; margin-bottom: 12px;">🔒</div>
+          <h2 style="color: #fff; font-size: 1.5rem; margin-bottom: 8px;">Maker Authentication Required</h2>
+          <p style="color: var(--st-text-muted); font-size: 0.9rem; max-width: 500px; margin: 0 auto 20px;">
+            You need an authorized <strong>MAKER</strong> role to originate and submit loans into the Checker
+            authorization pipeline.
+          </p>
+          <div style="display: flex; gap: 12px; justify-content: center;">
+            <a href="auth.html" class="st-btn-connect-wallet" style="text-decoration: none; padding: 10px 24px;">Sign In
+              as Maker ➔</a>
+          </div>
+        </div>
+        <!-- Main Maker Container -->
+        <div id="makerInterface">
+          <!-- Role Banner -->
+          <div class="portal-role-banner maker" id="makerRoleBanner">
+            <div class="role-banner-left">
+              <div class="role-icon-box maker">🛠️</div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <h3 style="color: #fff; font-size: 1.15rem; font-weight: 700; margin: 0;">Maker Origination Desk</h3>
+                  <span class="tag-maker">MAKER ROLE</span>
+                </div>
+                <p style="font-size: 0.82rem; color: var(--st-text-secondary); margin: 3px 0 0;">
+                  Originate loan proposals, link existing customers, record appraisal notes, and submit to Checker
+                  (Four-Eyes Principle).
+                </p>
+              </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <button class="btn btn-secondary btn-sm" onclick="loadMyLoans()"
+                style="border-color: var(--st-cyan); color: var(--st-cyan);">↻ Refresh</button>
+              <button class="btn btn-secondary btn-sm" onclick="logout()">Sign Out</button>
+            </div>
+          </div>
+          <!-- Two-Column Layout -->
+          <div class="maker-layout">
+            <!-- LEFT: Application Origination Form -->
+            <div>
+              <div class="st-showcase-panel form-card" style="padding: 28px;">
+                <!-- Stepper Navigation -->
+                <div class="stepper-nav">
+                  <div class="stepper-progress-bar">
+                    <div class="stepper-progress-fill" id="stepperFill" style="width: 25%;"></div>
+                  </div>
+                  <div class="step-item active" id="stepIndicator1" onclick="jumpToStep(1)">
+                    <div class="step-circle">1</div>
+                    <span class="step-label">KYC & Identity</span>
+                  </div>
+                  <div class="step-item" id="stepIndicator2" onclick="jumpToStep(2)">
+                    <div class="step-circle">2</div>
+                    <span class="step-label">Income & Work</span>
+                  </div>
+                  <div class="step-item" id="stepIndicator3" onclick="jumpToStep(3)">
+                    <div class="step-circle">3</div>
+                    <span class="step-label">Loan Terms</span>
+                  </div>
+                  <div class="step-item" id="stepIndicator4" onclick="jumpToStep(4)">
+                    <div class="step-circle">4</div>
+                    <span class="step-label">Appraisal & Submit</span>
+                  </div>
+                </div>
+                <!-- FORM -->
+                <form id="loanForm" onsubmit="event.preventDefault();">
+                  <!-- STEP 1: Personal / KYC -->
+                  <div class="step-content" id="stepContent1">
+                    <h3 style="color: #fff; font-size: 1.25rem; font-weight: 700; margin-bottom: 20px;">
+                      Step 1 — Borrower Identity & KYC Master Lookup
+                    </h3>
+                    <!-- Customer Lookup Box -->
+                    <div
+                      style="background: rgba(14, 18, 32, 0.85); border: 1px solid var(--st-border-focus); border-radius: var(--st-radius-lg); padding: 18px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                      <div
+                        style="font-weight: 700; color: var(--st-cyan); font-size: 0.88rem; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                        <span>🔍 Search Existing Customer (Database Lookup)</span>
+                        <span
+                          style="font-size: 0.72rem; background: rgba(6,182,212,0.15); color: #38bdf8; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(6,182,212,0.3);">AUTO-FILL</span>
+                      </div>
+                      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <input type="text" class="form-control" id="custSearchInput"
+                          placeholder="Search by Customer ID (e.g. CUST-1001) or Name (e.g. Priya)..."
+                          style="flex: 1; min-width: 240px;" oninput="onCustomerSearchInput()">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="searchCustomerDatabase()"
+                          id="btnCustSearch">Search Database</button>
+                      </div>
+                      <!-- Search Results Dropdown -->
+                      <div id="custSearchResults"
+                        style="display: none; margin-top: 12px; max-height: 220px; overflow-y: auto; background: rgba(10,13,24,0.98); border: 1px solid var(--st-border); border-radius: var(--st-radius-md); padding: 8px;">
+                      </div>
+                      <!-- Active Selected Customer Banner -->
+                      <div id="selectedCustBanner"
+                        style="display: none; margin-top: 12px; background: rgba(16,185,129,0.12); border: 1px solid var(--st-green); border-radius: var(--st-radius-md); padding: 12px 16px; font-size: 0.84rem; color: #34d399; justify-content: space-between; align-items: center;">
+                        <div><strong>✅ Linked Customer:</strong> <span id="linkedCustDetails"></span></div>
+                        <button type="button" class="btn btn-secondary btn-sm"
+                          style="padding: 2px 10px; font-size: 0.74rem;"
+                          onclick="clearSelectedCustomer()">Clear</button>
+                      </div>
+                    </div>
+
+                    <!-- KYC Fields -->
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label class="form-label" for="applicantName">Full Legal Name <span
+                            class="required">*</span></label>
+                        <input type="text" class="form-control" id="applicantName" placeholder="e.g. Aarav Sharma"
+                          required>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="applicantEmail">Email Address <span
+                            class="required">*</span></label>
+                        <input type="email" class="form-control" id="applicantEmail"
+                          placeholder="e.g. aarav@example.com" required>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="applicantPhone">Mobile Number <span
+                            class="required">*</span></label>
+                        <input type="tel" class="form-control" id="applicantPhone" placeholder="e.g. 9876543210"
+                          maxlength="15" required>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="applicantDob">Date of Birth</label>
+                        <input type="date" class="form-control" id="applicantDob">
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="applicantGender">Gender</label>
+                        <select class="form-control" id="applicantGender">
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="applicantPan">PAN / Tax ID</label>
+                        <input type="text" class="form-control" id="applicantPan" placeholder="e.g. ABCDE1234F"
+                          style="text-transform: uppercase;">
+                      </div>
+                      <div class="form-group full-width">
+                        <label class="form-label" for="applicantAddress">Permanent Residential Address</label>
+                        <input type="text" class="form-control" id="applicantAddress"
+                          placeholder="Flat / House No, Street, Landmark">
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="applicantCity">City</label>
+                        <input type="text" class="form-control" id="applicantCity" placeholder="e.g. Bengaluru">
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="applicantState">State</label>
+                        <input type="text" class="form-control" id="applicantState" placeholder="e.g. Karnataka">
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="applicantPincode">Pincode</label>
+                        <input type="text" class="form-control" id="applicantPincode" placeholder="e.g. 560001"
+                          maxlength="10">
+                      </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
+                      <button type="button" class="btn btn-primary" onclick="validateStep1() && jumpToStep(2)">
+                        Next: Income & Employment ➔
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- STEP 2: Income & Employment -->
+                  <div class="step-content" id="stepContent2" style="display: none;">
+                    <h3 style="color: #fff; font-size: 1.25rem; font-weight: 700; margin-bottom: 20px;">
+                      Step 2 — Financial Profile & Underwriting Assessment
+                    </h3>
+
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label class="form-label" for="employmentType">Employment Type <span
+                            class="required">*</span></label>
+                        <select class="form-control" id="employmentType">
+                          <option value="Salaried">Salaried (Full-time)</option>
+                          <option value="Self-Employed Professional">Self-Employed Professional</option>
+                          <option value="Business Owner">Business Owner / Enterprise</option>
+                          <option value="Government Employee">Government / PSU</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="employerName">Employer / Business Name</label>
+                        <input type="text" class="form-control" id="employerName" placeholder="e.g. Infosys Tech Ltd">
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="monthlyIncome">Net Monthly Income (₹) <span
+                            class="required">*</span></label>
+                        <input type="number" class="form-control" id="monthlyIncome" placeholder="e.g. 85000" min="5000"
+                          step="500" required>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="existingEmis">Existing Monthly EMIs (₹)</label>
+                        <input type="number" class="form-control" id="existingEmis" placeholder="0 if none" min="0"
+                          step="500">
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="creditScore">Bureau Credit Score (CIBIL)</label>
+                        <input type="number" class="form-control" id="creditScore" min="300" max="900"
+                          placeholder="e.g. 750">
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Debt-To-Income (DTI) Ratio</label>
+                        <div
+                          style="background: rgba(14, 18, 32, 0.7); border: 1px solid var(--st-border); border-radius: var(--st-radius-md); padding: 12px 16px; font-size: 0.95rem; font-weight: 700; color: #fff; font-family: var(--st-font-mono);"
+                          id="dtiDisplay">
+                          0.0% (Calculated Live)
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 24px;">
+                      <button type="button" class="btn btn-secondary" onclick="jumpToStep(1)">← Back</button>
+                      <button type="button" class="btn btn-primary" onclick="validateStep2() && jumpToStep(3)">
+                        Next: Loan Terms ➔
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- STEP 3: Loan Terms & EMI Calculation -->
+                  <div class="step-content" id="stepContent3" style="display: none;">
+                    <h3 style="color: #fff; font-size: 1.25rem; font-weight: 700; margin-bottom: 20px;">
+                      Step 3 — Proposed Loan Terms & Facility Structure
+                    </h3>
+
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label class="form-label" for="loanType">Loan Category <span class="required">*</span></label>
+                        <select class="form-control" id="loanType" onchange="calculateFormEmi()">
+                          <option value="Personal Loan">Personal Loan (11.50% p.a.)</option>
+                          <option value="Home Loan" selected>Home Loan (8.40% p.a.)</option>
+                          <option value="Auto Loan">Auto Loan (9.25% p.a.)</option>
+                          <option value="Education Loan">Education Loan (8.90% p.a.)</option>
+                          <option value="Business Loan">Business Loan (12.50% p.a.)</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="loanAmount">Loan Amount (₹) <span
+                            class="required">*</span></label>
+                        <input type="number" class="form-control" id="loanAmount" placeholder="e.g. 500000" min="25000"
+                          step="10000" oninput="calculateFormEmi()" required>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="tenureMonths">Tenure (Months) <span
+                            class="required">*</span></label>
+                        <select class="form-control" id="tenureMonths" onchange="calculateFormEmi()">
+                          <option value="12">12 Months (1 Year)</option>
+                          <option value="24">24 Months (2 Years)</option>
+                          <option value="36" selected>36 Months (3 Years)</option>
+                          <option value="48">48 Months (4 Years)</option>
+                          <option value="60">60 Months (5 Years)</option>
+                          <option value="84">84 Months (7 Years)</option>
+                          <option value="120">120 Months (10 Years)</option>
+                          <option value="180">180 Months (15 Years)</option>
+                          <option value="240">240 Months (20 Years)</option>
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Annual Interest Rate (APR)</label>
+                        <div
+                          style="background: rgba(14, 18, 32, 0.7); border: 1px solid var(--st-border); border-radius: var(--st-radius-md); padding: 12px 16px; font-size: 0.95rem; font-weight: 700; color: #fff; font-family: var(--st-font-mono);"
+                          id="formAprRate">
+                          8.40% p.a.
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Live Calculation Card -->
+                    <div
+                      style="background: rgba(14, 18, 32, 0.9); border: 1px solid var(--st-border); border-radius: var(--st-radius-lg); padding: 20px; margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
+                      <div>
+                        <div style="font-size: 0.74rem; color: var(--st-text-muted); text-transform: uppercase;">Monthly
+                          EMI</div>
+                        <div
+                          style="font-size: 1.45rem; font-weight: 800; color: #10b981; font-family: var(--st-font-mono); margin-top: 4px;"
+                          id="formCalculatedEmi">₹0</div>
+                      </div>
+                      <div>
+                        <div style="font-size: 0.74rem; color: var(--st-text-muted); text-transform: uppercase;">Total
+                          Interest</div>
+                        <div
+                          style="font-size: 1.2rem; font-weight: 700; color: #fbbf24; font-family: var(--st-font-mono); margin-top: 4px;"
+                          id="formCalculatedInterest">₹0</div>
+                      </div>
+                      <div>
+                        <div style="font-size: 0.74rem; color: var(--st-text-muted); text-transform: uppercase;">Total
+                          Repayment</div>
+                        <div
+                          style="font-size: 1.2rem; font-weight: 700; color: #fff; font-family: var(--st-font-mono); margin-top: 4px;"
+                          id="formCalculatedPayable">₹0</div>
+                      </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin-top: 24px;">
+                      <button type="button" class="btn btn-secondary" onclick="jumpToStep(2)">← Back</button>
+                      <button type="button" class="btn btn-primary" onclick="validateStep3() && jumpToStep(4)">
+                        Next: Appraisal Notes ➔
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- STEP 4: Appraisal Remarks & Submission -->
+                  <div class="step-content" id="stepContent4" style="display: none;">
+                    <h3 style="color: #fff; font-size: 1.25rem; font-weight: 700; margin-bottom: 20px;">
+                      Step 4 — Maker Appraisal & Four-Eyes Submission
+                    </h3>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                      <label class="form-label" for="makerRemarks">
+                        Maker Appraisal Notes & Underwriter Recommendations <span class="required">*</span>
+                      </label>
+                      <textarea class="form-control" id="makerRemarks" rows="4"
+                        placeholder="Enter KYC verification findings, income stability assessment, borrower interview summary, and recommended sanction terms for the Checker..."
+                        required></textarea>
+                    </div>
+
+                    <!-- Summary Breakdown Box -->
+                    <div
+                      style="background: rgba(14, 18, 32, 0.85); border: 1px solid var(--st-border); border-radius: var(--st-radius-lg); padding: 18px; margin-bottom: 24px;">
+                      <h4 style="font-size: 0.92rem; color: var(--st-cyan); margin-bottom: 12px;">Proposal Summary
+                        Preview</h4>
+                      <div
+                        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.82rem;">
+                        <div><span style="color: var(--st-text-muted);">Borrower:</span> <strong id="sumName"
+                            style="color: #fff;">—</strong></div>
+                        <div><span style="color: var(--st-text-muted);">Facility:</span> <strong id="sumType"
+                            style="color: #fff;">—</strong></div>
+                        <div><span style="color: var(--st-text-muted);">Amount:</span> <strong id="sumAmount"
+                            style="color: #34d399;">—</strong></div>
+                        <div><span style="color: var(--st-text-muted);">Tenure:</span> <strong id="sumTenure"
+                            style="color: #fff;">—</strong></div>
+                        <div><span style="color: var(--st-text-muted);">Monthly EMI:</span> <strong id="sumEmi"
+                            style="color: #10b981;">—</strong></div>
+                        <div><span style="color: var(--st-text-muted);">Initial Status:</span> <span
+                            class="status-pill status-PENDING_APPROVAL" style="font-size: 0.72rem;">PENDING
+                            APPROVAL</span></div>
+                      </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px;">
+                      <button type="button" class="btn btn-secondary" onclick="jumpToStep(3)">← Back</button>
+                      <button type="button" class="st-btn-connect-wallet" id="btnSubmitProposal"
+                        onclick="submitLoanApplication()" style="padding: 12px 28px; font-size: 0.95rem;">
+                        Submit to Checker Queue (PENDING_APPROVAL) ➔
+                      </button>
+                    </div>
+                  </div>
+
+                </form>
+
+              </div>
+            </div>
+
+            <!-- RIGHT: Maker Desk Side Panel -->
+            <div class="maker-side-panel">
+
+              <!-- Mini Stats -->
+              <div class="stats-mini-grid">
+                <div class="stat-mini-card">
+                  <div class="stat-mini-num" id="myTotalCount">0</div>
+                  <div class="stat-mini-label">Total Originated</div>
+                </div>
+                <div class="stat-mini-card">
+                  <div class="stat-mini-num" id="myPendingCount" style="color: #fbbf24;">0</div>
+                  <div class="stat-mini-label">Pending Checker</div>
+                </div>
+                <div class="stat-mini-card">
+                  <div class="stat-mini-num" id="myApprovedCount" style="color: #34d399;">0</div>
+                  <div class="stat-mini-label">Approved</div>
+                </div>
+              </div>
+
+              <!-- My Submitted Loans Feed -->
+              <div class="st-showcase-panel" style="padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                  <h4 style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 0;">My Originated Loans</h4>
+                  <span id="myLoansSubtitle" style="font-size: 0.75rem; color: var(--st-text-muted);">Loading...</span>
+                </div>
+
+                <div id="myLoansList" style="max-height: 440px; overflow-y: auto;">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="st-modal-overlay" id="successModal">
+    <div class="st-modal" style="max-width: 520px; text-align: center;">
+      <div style="font-size: 3.5rem; margin-bottom: 12px;">🎉</div>
+      <h3 class="st-modal-title" style="font-size: 1.4rem; color: #fff; margin-bottom: 6px;">Loan Proposal Submitted!
+      </h3>
+      <p style="color: var(--st-text-secondary); font-size: 0.86rem; margin-bottom: 20px;">
+        Application created in MySQL database and assigned status <strong
+          style="color: #fbbf24;">PENDING_APPROVAL</strong>.
+      </p>
+
+      <div
+        style="background: rgba(14, 18, 32, 0.9); border: 1px solid var(--st-border); border-radius: var(--st-radius-lg); padding: 18px; margin-bottom: 24px;">
+        <div style="font-size: 0.75rem; color: var(--st-text-muted); text-transform: uppercase;">Application Reference
+          ID</div>
+        <div style="font-family: var(--st-font-mono); font-size: 1.8rem; font-weight: 800; color: #fff; margin: 6px 0;"
+          id="modalAppNumber">LN-2026-XXXX</div>
+        <button class="btn btn-secondary btn-sm" id="copyIdBtn" onclick="copyAppId()">📋 Copy Reference ID</button>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button class="btn btn-secondary" onclick="resetFormForNew()">Originate Another Loan</button>
+        <a href="checker.html" class="st-btn-connect-wallet" style="text-decoration: none; padding: 10px 20px;">View in
+          Checker ➔</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loan Detail Dossier Modal -->
+  <div class="st-modal-overlay" id="loanDetailModal">
+    <div class="st-modal" style="max-width: 580px;">
+      <div class="st-modal-header">
+        <h3 class="st-modal-title" id="loanDetailTitle">Loan Dossier</h3>
+        <button class="st-modal-close" onclick="closeLoanDetailModal()">✕</button>
+      </div>
+      <div id="loanDetailContent" style="max-height: 420px; overflow-y: auto; margin-bottom: 16px;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <a href="checker.html" class="btn btn-secondary"
+          style="border-color: #34d399; color: #34d399; font-size: 0.85rem;">🛡️ View in Checker</a>
+        <button class="btn btn-secondary" onclick="closeLoanDetailModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast -->
+  <div class="st-toast" id="stakentToast"></div>
+
+  <!-- Scripts -->
+  <script src="js/main.js"></script>
+  <script src="js/apply.js"></script>
+  <script src="js/authGuard.js"></script>
+  <script>
+    let myLoansList = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      checkMakerAccess();
+      calculateFormEmi();
+    });
+
+    function checkMakerAccess() {
+      if (!isLoggedIn()) {
+        sessionStorage.setItem('auth_error_message', '🔒 Please sign in to access the Maker Console.');
+        window.location.replace('auth.html');
+        return;
+      }
+      const user = getCurrentUser() || { name: 'Maker Staff', email: 'maker@gmail.com', role: 'MAKER' };
+      const makerInterface = document.getElementById('makerInterface');
+      const guard = document.getElementById('accessGuard');
+
+      if (guard) guard.style.display = 'none';
+      if (makerInterface) makerInterface.style.display = 'block';
+      updateHeaderUser(user);
+      loadMyLoans();
+    }
+
+    function updateHeaderUser(user) {
+      const headerName = document.getElementById('headerName');
+      const headerRole = document.getElementById('headerRole');
+      const headerAvatar = document.getElementById('headerAvatar');
+      if (headerName) headerName.textContent = user.name || 'Hemanth (Maker)';
+      if (headerRole) headerRole.textContent = (user.role || 'MAKER').toUpperCase();
+      if (headerAvatar) {
+        const initials = (user.name || 'HM').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        headerAvatar.textContent = initials;
+      }
+    }
+
+    async function loadMyLoans() {
+      const user = getCurrentUser() || { email: 'hemanthmanih@gmail.com' };
+      const listEl = document.getElementById('myLoansList');
+      const subtitle = document.getElementById('myLoansSubtitle');
+
+      try {
+        const res = await fetch('/api/auth/my-loans', { headers: getAuthHeaders() });
+        const data = await res.json();
+
+        if (data.success && data.data && data.data.length > 0) {
+          myLoansList = data.data;
+          renderMyLoans(myLoansList);
+          updateMiniStats(myLoansList);
+          subtitle.textContent = `${myLoansList.length} loan(s)`;
+        } else {
+          // Fallback to all loans
+          const resAll = await fetch('/api/all', { headers: getAuthHeaders() });
+          const allData = await resAll.json();
+          if (allData.success) {
+            myLoansList = allData.data || [];
+            renderMyLoans(myLoansList);
+            updateMiniStats(myLoansList);
+            subtitle.textContent = `${myLoansList.length} loan(s)`;
+          } else {
+            subtitle.textContent = '0 loans';
+            renderMyLoans([]);
+          }
+        }
+      } catch (err) {
+        listEl.innerHTML = `<div style="text-align: center; color: var(--st-text-muted); padding: 20px;">Could not load loans.</div>`;
+      }
+    }
+
+    function updateMiniStats(loans) {
+      document.getElementById('myTotalCount').textContent = loans.length;
+      document.getElementById('myPendingCount').textContent = loans.filter(l =>
+        l.status === 'PENDING_APPROVAL' || l.status === 'UNDER_REVIEW' || l.status === 'DOCS_VERIFICATION' || l.status === 'AWAITING_APPROVAL' || l.status === 'SUBMITTED'
+      ).length;
+      document.getElementById('myApprovedCount').textContent = loans.filter(l =>
+        l.status === 'APPROVED' || l.status === 'DISBURSED'
+      ).length;
+    }
+
+    function renderMyLoans(loans) {
+      const listEl = document.getElementById('myLoansList');
+      if (!loans || loans.length === 0) {
+        listEl.innerHTML = `
+          <div style="text-align: center; padding: 30px 10px; color: var(--st-text-muted); font-size: 0.85rem;">
+            <div style="font-size: 2rem; margin-bottom: 6px;">📭</div>
+            No loans submitted yet.<br>Complete the form to originate your first loan.
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = loans.slice(0, 10).map(loan => {
+        const isPending = loan.status === 'PENDING_APPROVAL' || loan.status === 'UNDER_REVIEW' || loan.status === 'DOCS_VERIFICATION';
+        return `
+          <div class="my-loan-item" onclick="openLoanDetail(${loan.id})" title="Click to view dossier">
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 700; color: #fff; font-size: 0.85rem; font-family: var(--st-font-mono);">${loan.application_number}</div>
+              <div style="font-size: 0.78rem; color: var(--st-text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${loan.applicant_name} • ${formatCurrency(loan.loan_amount)}
+              </div>
+              <div style="font-size: 0.72rem; color: var(--st-text-muted); margin-top: 1px;">${loan.loan_type}</div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <span class="status-pill status-${loan.status}" style="font-size: 0.68rem; padding: 2px 8px; white-space: nowrap;">
+                ${isPending ? '⏳ ' : ''}${loan.status.replace(/_/g, ' ')}
+              </span>
+              <span style="font-size: 0.68rem; color: var(--st-text-muted);">${new Date(loan.created_at).toLocaleDateString('en-IN')}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openLoanDetail(loanId) {
+      const loan = myLoansList.find(l => l.id === loanId);
+      if (!loan) return;
+
+      document.getElementById('loanDetailTitle').textContent = `${loan.application_number} — ${loan.applicant_name}`;
+
+      const rows = [
+        ['Borrower Name', loan.applicant_name],
+        ['Email / Mobile', `${loan.email} / ${loan.phone}`],
+        ['PAN / Tax ID', loan.pan_or_id || 'N/A'],
+        ['Employment', `${loan.employment_type} — ${loan.employer_name || 'N/A'}`],
+        ['Monthly Income', formatCurrency(loan.monthly_income)],
+        ['Existing EMIs', formatCurrency(loan.existing_emis || 0)],
+        ['CIBIL Score', loan.credit_score || 'N/A'],
+        ['Loan Category', loan.loan_type],
+        ['Sanction Amount', formatCurrency(loan.loan_amount)],
+        ['Tenure', `${loan.tenure_months} months`],
+        ['Interest Rate', `${loan.interest_rate}% p.a.`],
+        ['Monthly EMI', formatCurrency(loan.monthly_emi)],
+        ['Appraisal Notes', loan.loan_purpose || loan.officer_notes || 'N/A'],
+        ['Submitted At', new Date(loan.created_at).toLocaleString('en-IN')]
+      ];
+
+      document.getElementById('loanDetailContent').innerHTML = `
+        <div style="margin-bottom: 14px; padding: 12px 16px; background: rgba(14,18,32,0.85); border-radius: var(--st-radius-md); display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.8rem; color: var(--st-text-muted);">Current Authorization Status:</span>
+          <span class="status-pill status-${loan.status}" style="font-size: 0.8rem;">${loan.status.replace(/_/g, ' ')}</span>
+        </div>
+        ${rows.map(([label, value]) => `
+          <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.84rem;">
+            <span style="color: var(--st-text-muted); font-weight: 600;">${label}</span>
+            <span style="color: #fff; text-align: right;">${value}</span>
+          </div>
+        `).join('')}
+      `;
+
+      document.getElementById('loanDetailModal').classList.add('open');
+    }
+
+    function closeLoanDetailModal() {
+      document.getElementById('loanDetailModal').classList.remove('open');
+    }
+
+    function closeSuccessModal() {
+      document.getElementById('successModal').classList.remove('open');
+    }
+
+    function resetFormForNew() {
+      closeSuccessModal();
+      document.getElementById('loanForm').reset();
+      jumpToStep(1);
+      loadMyLoans();
+    }
+
+    // Connect maker callback from apply.js
+    window._makerSuccessCallback = function (appNumber) {
+      document.getElementById('modalAppNumber').textContent = appNumber;
+      document.getElementById('successModal').classList.add('open');
+      loadMyLoans();
+    };
+  </script>
+</body>
+
+</html>

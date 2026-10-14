@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apply for a Loan — ApexLoan ®</title>
+  <meta name="description" content="Submit your digital loan application with instant verification, transparent EMI calculation, and direct MySQL storage with Stakent dark UI.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/stakent.css">
+  <script>
+    // Strict Auth Guard: Apply page is restricted to Makers
+    (function() {
+      const token = localStorage.getItem('apex_jwt_token');
+      const rawUser = localStorage.getItem('apex_user');
+      if (!token || !rawUser) {
+        sessionStorage.setItem('auth_error_message', '🔒 Please sign in as a Maker to originate loan applications.');
+        sessionStorage.setItem('auth_target_url', window.location.pathname);
+        window.location.replace('auth.html');
+        return;
+      }
+      try {
+        const u = JSON.parse(rawUser);
+        const role = (u.role || '').toUpperCase();
+        if (role !== 'MAKER' && role !== 'ADMIN') {
+          sessionStorage.setItem('auth_error_message', '⛔ Access Denied: You are signed in as a Checker. Loan origination is restricted to Makers.');
+          window.location.replace('checker.html');
+        }
+      } catch(e) {
+        window.location.replace('auth.html');
+      }
+    })();
+  </script>
+</head>
+<body class="stakent-body" data-roles="MAKER,ADMIN">
+
+  <div class="st-layout">
+
+    <!-- ==========================================
+         LEFT SIDEBAR
+         ========================================== -->
+    <aside class="st-sidebar" id="appSidebar">
+      <!-- Brand Logo -->
+      <div class="st-brand">
+        <div class="st-brand-left">
+          <div class="st-logo-icon">⚡</div>
+          <div>
+            <div class="st-brand-title">ApexLoan <span class="st-brand-reg">®</span></div>
+            <div class="st-brand-sub">Loan Origination Desk</div>
+          </div>
+        </div>
+        <button class="st-brand-selector" title="Switch Branch" onclick="showToast('Active Node: ApexLoan Production Node')">⇅</button>
+      </div>
+
+      <!-- Segment Switch -->
+      <div class="st-segment-switch">
+        <button class="st-segment-btn active" id="segBtn1" onclick="window.location.href='apply.html'">Retail Origination</button>
+        <button class="st-segment-btn" id="segBtn2" onclick="window.location.href='apply.html'">Commercial Loans</button>
+      </div>
+
+      <!-- Main Navigation Menu -->
+      <nav class="st-nav-menu" id="appNavMenu">
+        <!-- Role-filtered nav injected at runtime -->
+      </nav>
+
+      <!-- Active Proposals Collapsible List -->
+      <div class="st-section-title">
+        <div style="display: flex; align-items: center;">
+          <span>Recent Proposals</span>
+          <span class="st-count-pill" id="activeCountPill">0</span>
+        </div>
+        <button style="color: var(--st-text-muted); font-size: 0.75rem;">▲</button>
+      </div>
+
+      <div class="st-active-list" id="sidebarActiveList">
+        <!-- Rendered via stakent.js from MySQL -->
+      </div>
+
+      <!-- Bottom Card -->
+      <div class="st-sidebar-bottom">
+        <div class="st-super-card" onclick="window.location.href='maker.html'">
+          <div class="st-super-icon">🛡️</div>
+          <div class="st-super-text">
+            <h5>Four-Eyes Protocol</h5>
+            <p>Strict Dual Authorization</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================
+         MAIN VIEWPORT
+         ========================================== -->
+    <main class="st-main">
+
+      <!-- Top Header Navigation -->
+      <header class="st-header">
+        <div class="st-header-left">
+          <button class="st-menu-btn" id="mobileMenuBtn" aria-label="Toggle Navigation">☰</button>
+
+          <!-- User Profile Chip -->
+          <div class="st-profile-chip" id="userProfileChip" onclick="logout()" title="Click to Sign Out">
+            <div class="st-profile-avatar" id="headerAvatar" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">DM</div>
+            <div class="st-profile-info">
+              <span class="st-profile-tag" id="headerTag">@maker</span>
+              <span class="st-pro-tag" id="headerRole">MAKER</span>
+              <span class="st-profile-name" id="headerName">David Miller</span>
+            </div>
+          </div>
+
+          <!-- Deposit Action Button (Stakent white pill) -->
+          <a href="index.html" class="st-btn-deposit" style="text-decoration: none;">
+            <span>Deposit</span>
+            <span style="font-size: 0.85rem;">🔒</span>
+          </a>
+        </div>
+
+        <div class="st-header-right">
+          <a href="checker.html" class="st-icon-btn" title="Notifications" style="text-decoration: none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="st-badge-dot">2</span>
+          </a>
+
+          <div class="st-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" placeholder="Search by Loan ID..." id="headerSearchInput" onkeydown="if(event.key==='Enter') window.location.href='track.html?app='+encodeURIComponent(this.value.trim());">
+            <kbd>⌘</kbd>
+          </div>
+
+          <button class="st-btn-settings" onclick="logout()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <div class="st-content">
+
+        <!-- Page Section Header -->
+        <div class="st-top-row-header" style="margin-bottom: 24px;">
+          <div>
+            <div class="st-rec-tag">
+              Paperless Digital Lending ⚡ <span class="st-rec-count">Direct MySQL Processing</span>
+            </div>
+            <h1 class="st-page-heading">Loan Application Portal</h1>
+          </div>
+          <div class="st-filter-group">
+            <div class="st-filter-pill" onclick="window.location.href='track.html'">
+              <span>🔍 Track Existing Application</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-Step Card -->
+        <div class="glass-card form-card">
+          <!-- Stepper Header -->
+          <div class="stepper-nav">
+            <div class="stepper-progress-bar">
+              <div class="stepper-progress-fill" id="stepperFill"></div>
+            </div>
+            
+            <div class="step-item active" id="stepIndicator1" onclick="jumpToStep(1)">
+              <div class="step-circle">1</div>
+              <span class="step-label">KYC & Contact</span>
+            </div>
+            <div class="step-item" id="stepIndicator2" onclick="jumpToStep(2)">
+              <div class="step-circle">2</div>
+              <span class="step-label">Income & Work</span>
+            </div>
+            <div class="step-item" id="stepIndicator3" onclick="jumpToStep(3)">
+              <div class="step-circle">3</div>
+              <span class="step-label">Loan Terms</span>
+            </div>
+            <div class="step-item" id="stepIndicator4" onclick="jumpToStep(4)">
+              <div class="step-circle">4</div>
+              <span class="step-label">Review & Submit</span>
+            </div>
+          </div>
+
+          <!-- Application Form -->
+          <form id="loanForm" onsubmit="event.preventDefault();">
+            <!-- ================= STEP 1: Personal & KYC ================= -->
+            <div class="step-content" id="stepContent1">
+              <h3 style="font-weight: 800; margin-bottom: 20px; color: #fff; font-size: 1.25rem; display: flex; align-items: center; gap: 8px;">
+                <span>👤</span> Step 1: Personal & Identity Information
+              </h3>
+
+              <!-- Search Existing Customer (Maker Tool) -->
+              <div style="background: #111422; border: 1px solid rgba(112, 71, 235, 0.35); border-radius: var(--st-radius-lg); padding: 18px; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                  <div style="font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; font-size: 0.95rem;">
+                    <span>🔍</span> Search Existing Customer (Database Lookup)
+                  </div>
+                  <span style="font-size: 0.72rem; background: rgba(112, 71, 235, 0.2); color: var(--st-purple-light); padding: 4px 10px; border-radius: 20px; font-weight: 700; border: 1px solid rgba(112, 71, 235, 0.3);">
+                    MAKER LOAN ORIGINATION
+                  </span>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                  <input type="text" class="form-control" id="custSearchInput" placeholder="Search by Customer ID (e.g. CUST-1001) or Name (e.g. Priya)..." style="flex: 1; min-width: 250px;" oninput="onCustomerSearchInput()">
+                  <button type="button" class="btn btn-primary btn-sm" onclick="searchCustomerDatabase()" id="btnCustSearch">
+                    Search Customer
+                  </button>
+                </div>
+
+
+                <!-- Search Results Dropdown List -->
+                <div id="custSearchResults" style="display: none; margin-top: 10px; max-height: 220px; overflow-y: auto; background: #0c0e18; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 8px;"></div>
+
+                <!-- Selected Customer Confirmation Banner -->
+                <div id="selectedCustBanner" style="display: none; margin-top: 10px; background: rgba(16, 185, 129, 0.15); border: 1px solid var(--st-green); border-radius: 12px; padding: 12px 16px; font-size: 0.86rem; color: #34d399; justify-content: space-between; align-items: center;">
+                  <div>
+                    <strong>✅ Linked Customer:</strong> <span id="linkedCustDetails"></span>
+                  </div>
+                  <button type="button" class="btn btn-secondary btn-sm" style="padding: 3px 10px; font-size: 0.75rem;" onclick="clearSelectedCustomer()">Clear</button>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label" for="applicantName">Full Legal Name <span class="required">*</span></label>
+                  <input type="text" class="form-control" id="applicantName" placeholder="e.g. Aarav Sharma" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="applicantEmail">Email Address <span class="required">*</span></label>
+                  <input type="email" class="form-control" id="applicantEmail" placeholder="e.g. aarav@example.com" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="applicantPhone">Phone / Mobile <span class="required">*</span></label>
+                  <input type="tel" class="form-control" id="applicantPhone" placeholder="e.g. 9876543210" maxlength="15" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="applicantDob">Date of Birth</label>
+                  <input type="date" class="form-control" id="applicantDob">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="applicantGender">Gender</label>
+                  <select class="form-control" id="applicantGender">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="applicantPan">PAN / National ID Card</label>
+                  <input type="text" class="form-control" id="applicantPan" placeholder="e.g. ABCDE1234F" style="text-transform: uppercase;">
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label" for="applicantAddress">Current Residential Address</label>
+                  <input type="text" class="form-control" id="applicantAddress" placeholder="Flat / House No, Street, Landmark">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="applicantCity">City</label>
+                  <input type="text" class="form-control" id="applicantCity" placeholder="e.g. Bengaluru">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="applicantState">State</label>
+                  <input type="text" class="form-control" id="applicantState" placeholder="e.g. Karnataka">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="applicantPincode">Postal Pincode</label>
+                  <input type="text" class="form-control" id="applicantPincode" placeholder="e.g. 560001" maxlength="10">
+                </div>
+              </div>
+
+              <div class="step-actions">
+                <div></div>
+                <button type="button" class="btn btn-primary" onclick="nextStep(2)">Continue to Income Details →</button>
+              </div>
+            </div>
+
+            <!-- ================= STEP 2: Employment & Income ================= -->
+            <div class="step-content" id="stepContent2" style="display: none;">
+              <h3 style="font-weight: 800; margin-bottom: 20px; color: #fff; font-size: 1.25rem; display: flex; align-items: center; gap: 8px;">
+                <span>💼</span> Step 2: Employment & Financial Capacity
+              </h3>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label" for="employmentType">Employment Type <span class="required">*</span></label>
+                  <select class="form-control" id="employmentType" required>
+                    <option value="Salaried">Salaried (Private / Govt)</option>
+                    <option value="Self-Employed">Self-Employed Professional</option>
+                    <option value="Business Owner">Business Owner / Trader</option>
+                    <option value="Student">Student (With Co-signer)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="employerName">Employer / Business Name</label>
+                  <input type="text" class="form-control" id="employerName" placeholder="e.g. Tata Consultancy Services">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="monthlyIncome">Net Monthly Income (₹) <span class="required">*</span></label>
+                  <input type="number" class="form-control" id="monthlyIncome" placeholder="e.g. 75000" min="5000" step="500" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="existingEmis">Current Monthly EMIs / Liabilities (₹)</label>
+                  <input type="number" class="form-control" id="existingEmis" placeholder="0 if none" min="0" step="500" value="0">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="creditScore">Credit Score (CIBIL / Experian)</label>
+                  <select class="form-control" id="creditScore">
+                    <option value="780">Excellent (780 - 850)</option>
+                    <option value="740" selected>Good (720 - 779)</option>
+                    <option value="680">Fair (650 - 719)</option>
+                    <option value="620">Needs Improvement (&lt; 650)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="step-actions">
+                <button type="button" class="btn btn-secondary" onclick="prevStep(1)">← Back</button>
+                <button type="button" class="btn btn-primary" onclick="nextStep(3)">Continue to Loan Terms →</button>
+              </div>
+            </div>
+
+            <!-- ================= STEP 3: Loan Customization ================= -->
+            <div class="step-content" id="stepContent3" style="display: none;">
+              <h3 style="font-weight: 800; margin-bottom: 20px; color: #fff; font-size: 1.25rem; display: flex; align-items: center; gap: 8px;">
+                <span>📊</span> Step 3: Choose Loan Category & Terms
+              </h3>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label" for="loanType">Loan Category <span class="required">*</span></label>
+                  <select class="form-control" id="loanType" onchange="calculateFormEmi()" required>
+                    <option value="Personal Loan">Personal Loan (11.50% p.a.)</option>
+                    <option value="Home Loan">Home Loan (8.40% p.a.)</option>
+                    <option value="Auto Loan">Auto / Car Loan (9.25% p.a.)</option>
+                    <option value="Education Loan">Education Loan (8.90% p.a.)</option>
+                    <option value="Business Loan">Business Growth Loan (12.50% p.a.)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="loanAmount">Desired Loan Amount (₹) <span class="required">*</span></label>
+                  <input type="number" class="form-control" id="loanAmount" placeholder="e.g. 500000" min="25000" step="10000" value="500000" oninput="calculateFormEmi()" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="tenureMonths">Tenure Duration <span class="required">*</span></label>
+                  <select class="form-control" id="tenureMonths" onchange="calculateFormEmi()" required>
+                    <option value="12">12 Months (1 Year)</option>
+                    <option value="24">24 Months (2 Years)</option>
+                    <option value="36" selected>36 Months (3 Years)</option>
+                    <option value="48">48 Months (4 Years)</option>
+                    <option value="60">60 Months (5 Years)</option>
+                    <option value="84">84 Months (7 Years)</option>
+                    <option value="120">120 Months (10 Years)</option>
+                    <option value="180">180 Months (15 Years)</option>
+                    <option value="240">240 Months (20 Years)</option>
+                  </select>
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label" for="makerRemarks">Maker Appraisal Remarks & Justification <span class="required">*</span></label>
+                  <textarea class="form-control" id="makerRemarks" placeholder="Enter Maker appraisal rationale, borrower verification notes, and recommendations for the Checker..." required></textarea>
+                </div>
+              </div>
+
+              <!-- Live Computed EMI Summary Box -->
+              <div style="background: #111422; border: 1px solid rgba(112, 71, 235, 0.35); border-radius: var(--st-radius-lg); padding: 22px; margin-top: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                  <div>
+                    <span style="font-size: 0.8rem; color: var(--st-text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Estimated Monthly Installment</span>
+                    <div style="font-family: var(--st-font); font-size: 1.85rem; font-weight: 800; color: #10b981; margin-top: 4px;" id="formLiveEmi">₹16,498 / mo</div>
+                  </div>
+                  <div style="font-size: 0.88rem; color: var(--st-text-secondary); background: #151829; padding: 10px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+                    Interest Rate: <strong style="color: #fff;" id="formLiveRate">11.50%</strong> &nbsp;|&nbsp; Tenure: <strong style="color: #fff;" id="formLiveTenure">36 Mos</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="step-actions">
+                <button type="button" class="btn btn-secondary" onclick="prevStep(2)">← Back</button>
+                <button type="button" class="btn btn-primary" onclick="prepareReviewStep()">Review Loan Proposal →</button>
+              </div>
+            </div>
+
+            <!-- ================= STEP 4: Review & Submit ================= -->
+            <div class="step-content" id="stepContent4" style="display: none;">
+              <h3 style="font-weight: 800; margin-bottom: 20px; color: #fff; font-size: 1.25rem; display: flex; align-items: center; gap: 8px;">
+                <span>📋</span> Step 4: Verify Proposal & Submit for Checker Approval
+              </h3>
+
+              <div id="reviewSummaryCard" style="background: #111422; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--st-radius-lg); padding: 24px; margin-bottom: 24px;">
+                <!-- Rendered dynamically -->
+              </div>
+
+              <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 24px;">
+                <input type="checkbox" id="termsConsent" checked style="margin-top: 4px; accent-color: var(--st-purple);" required>
+                <label for="termsConsent" style="font-size: 0.88rem; color: var(--st-text-secondary); cursor: pointer;">
+                  I certify that I have originated and appraised this loan proposal. Upon submission, the loan status will be recorded as <strong>PENDING_APPROVAL</strong> in MySQL for Checker authorization.
+                </label>
+              </div>
+
+              <div class="step-actions">
+                <button type="button" class="btn btn-secondary" onclick="prevStep(3)">← Back</button>
+                <button type="button" class="btn btn-emerald btn-lg" id="submitApplicationBtn" onclick="submitApplication()">
+                  Submit Loan for Approval (PENDING_APPROVAL) ➔
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Success Confirmation Modal -->
+  <div class="modal-overlay" id="successModal">
+    <div class="modal-content" style="text-align: center;">
+      <div style="font-size: 3.5rem; margin-bottom: 12px;">🎉</div>
+      <h3 class="modal-title" style="margin-bottom: 8px;">Application Logged Successfully!</h3>
+      <p style="font-size: 0.92rem; color: var(--st-text-secondary); margin-bottom: 20px;">
+        Your loan submission has been safely written to the MySQL database. Save your Application Reference ID below to monitor review status.
+      </p>
+
+      <div style="background: rgba(112, 71, 235, 0.15); border: 1px dashed var(--st-purple-light); padding: 18px; border-radius: var(--st-radius-md); margin-bottom: 24px;">
+        <span style="font-size: 0.78rem; text-transform: uppercase; color: var(--st-text-muted); font-weight: 700; letter-spacing: 0.5px;">Application Reference ID</span>
+        <div style="font-family: var(--st-font-mono); font-size: 1.8rem; font-weight: 800; color: #fff; margin: 8px 0;" id="modalAppNumber">LN-2026-XXXX</div>
+        <button class="btn btn-secondary btn-sm" onclick="copyAppId()" id="copyIdBtn">📋 Copy Reference ID</button>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <a href="track.html" class="btn btn-primary" id="trackNowBtn">Track Status Now ➔</a>
+        <a href="index.html" class="btn btn-secondary">Return Home</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notification -->
+  <div class="st-toast" id="stakentToast"></div>
+
+  <!-- Scripts -->
+  <script src="js/main.js"></script>
+  <script src="js/stakent.js"></script>
+  <script src="js/apply.js"></script>
+  <script src="js/authGuard.js"></script>
+</body>
+</html>

@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ApexLoan ® — Smart Loan Management & Instant Digital Approvals</title>
+  <meta name="description" content="Next-generation loan origination, EMI calculations, CIBIL scoring, and MySQL-backed Maker-Checker approvals with state-of-the-art dark dashboard UI.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="css/stakent.css">
+  <script>
+    // Authentication & Profile Hydration (Non-blocking)
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        const rawUser = localStorage.getItem('apex_user');
+        if (rawUser) {
+          const u = JSON.parse(rawUser);
+          const nameEl = document.getElementById('headerName');
+          const roleEl = document.getElementById('headerRole');
+          const tagEl = document.getElementById('headerTag');
+          const avatarEl = document.getElementById('headerAvatar');
+          if (nameEl) nameEl.textContent = u.name || 'Staff User';
+          if (roleEl) roleEl.textContent = (u.role || 'MAKER').toUpperCase();
+          if (tagEl) tagEl.textContent = '@' + (u.role || 'user').toLowerCase();
+          if (avatarEl && u.name) {
+            const initials = u.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            avatarEl.textContent = initials;
+          }
+        }
+      } catch(e) {}
+    });
+  </script>
+</head>
+<body class="stakent-body">
+
+  <div class="st-layout">
+
+    <!-- ==========================================
+         LEFT SIDEBAR
+         ========================================== -->
+    <aside class="st-sidebar" id="appSidebar">
+      <!-- Brand Logo & Switcher -->
+      <div class="st-brand">
+        <div class="st-brand-left">
+          <div class="st-logo-icon">⚡</div>
+          <div>
+            <div class="st-brand-title" id="brandTitle">ApexLoan <span class="st-brand-reg">®</span></div>
+            <div class="st-brand-sub" id="brandSub">Intelligent Lending System</div>
+          </div>
+        </div>
+        <button class="st-brand-selector" title="Switch Branch / Organization" onclick="showToast('Active Node: ApexLoan Production Node')">⇅</button>
+      </div>
+
+      <!-- Segment Switch -->
+      <div class="st-segment-switch">
+        <button class="st-segment-btn active" id="segBtn1">Retail Loans</button>
+        <button class="st-segment-btn" id="segBtn2">Commercial Facilities</button>
+      </div>
+
+      <!-- Main Navigation Menu -->
+      <nav class="st-nav-menu">
+        <a href="index.html" class="st-nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="3" y="3" width="7" height="7" rx="2"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="2"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="2"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="2"></rect>
+          </svg>
+          <span>Dashboard</span>
+        </a>
+
+        <!-- Banking System Roles Gateway -->
+        <a href="maker.html" class="st-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M11 4H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          <span>Maker Console</span>
+        </a>
+
+        <a href="checker.html" class="st-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+          <span>Checker Approval</span>
+        </a>
+
+        <a href="apply.html" class="st-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+          <span>Originate Application</span>
+        </a>
+
+        <a href="track.html" class="st-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>Track Status</span>
+        </a>
+
+        <a href="#calculator" class="st-nav-item" onclick="openModal('calcModal')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+            <line x1="8" y1="6" x2="16" y2="6"></line>
+            <line x1="16" y1="14" x2="16" y2="18"></line>
+            <path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"></path>
+          </svg>
+          <span>EMI Calculator</span>
+        </a>
+
+        <a href="auth.html" class="st-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
+          <span>Staff Gateway</span>
+        </a>
+      </nav>
+
+      <!-- Active Proposals Collapsible List -->
+      <div class="st-section-title">
+        <div style="display: flex; align-items: center;">
+          <span>Recent Proposals</span>
+          <span class="st-count-pill" id="activeCountPill">0</span>
+        </div>
+        <button style="color: var(--st-text-muted); font-size: 0.75rem;">▲</button>
+      </div>
+
+      <!-- Active List -->
+      <div class="st-active-list" id="sidebarActiveList">
+        <!-- Rendered dynamically from MySQL -->
+      </div>
+
+      <!-- Bottom Card: Four-Eyes Principle -->
+      <div class="st-sidebar-bottom">
+        <div class="st-super-card" onclick="window.location.href='auth.html'">
+          <div class="st-super-icon">🛡️</div>
+          <div class="st-super-text">
+            <h5>Four-Eyes Protocol</h5>
+            <p>Strict Maker-Checker Authorization</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================
+         MAIN VIEWPORT
+         ========================================== -->
+    <main class="st-main">
+
+      <!-- Top Header Navigation -->
+      <header class="st-header">
+        <div class="st-header-left">
+          <button class="st-menu-btn" id="mobileMenuBtn" aria-label="Toggle Navigation">☰</button>
+
+          <!-- User Profile Chip (100% Match to screenshot) -->
+          <div class="st-profile-chip" id="headerProfileChip" onclick="window.location.href='auth.html'">
+            <div class="st-profile-avatar" id="headerAvatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">RC</div>
+            <div class="st-profile-info">
+              <span class="st-profile-tag" id="headerTag">@ryan.997</span>
+              <span class="st-pro-tag" id="headerRole">PRO</span>
+              <span class="st-profile-name" id="headerName">Ryan Crawford</span>
+            </div>
+          </div>
+
+          <!-- Rounded Action Button: Deposit 🔒 (Exact match to screenshot) -->
+          <a href="auth.html" class="st-btn-deposit" id="headerDepositBtn" style="text-decoration: none;">
+            <span>Deposit</span>
+            <span style="font-size: 0.85rem;">🔒</span>
+          </a>
+        </div>
+
+        <div class="st-header-right">
+          <!-- Notification Bell with counter badge 2 -->
+          <a href="checker.html" class="st-icon-btn" title="Pending Notifications" style="text-decoration: none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="st-badge-dot">2</span>
+          </a>
+
+          <!-- Search Box with Command Shortcut ⌘ -->
+          <div class="st-search-box">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" placeholder="Search..." id="headerSearchInput" onkeydown="if(event.key==='Enter') window.location.href='track.html?app='+encodeURIComponent(this.value.trim());">
+            <kbd>⌘</kbd>
+          </div>
+
+          <!-- Settings Button with Gear Icon -->
+          <button class="st-btn-settings" onclick="openModal('calcModal')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <span>Settings</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <div class="st-content">
+
+        <!-- Top Section Header & Filter Controls -->
+        <div class="st-top-row-header">
+          <div>
+            <div class="st-rec-tag" id="recSubText">
+              Lending Rates & Facilities 🕒 <span class="st-rec-count">3 Products</span>
+            </div>
+            <h1 class="st-page-heading" id="pageHeading">Loan Products & Sanction Pipeline</h1>
+          </div>
+
+          <div class="st-filter-group">
+            <div class="st-filter-pill" onclick="showToast('Filtered by Active Loan Portfolios')">
+              <span>• Active Facilities ▾</span>
+            </div>
+            <div class="st-filter-pill" onclick="showToast('Filter by Retail & Commercial')">
+              <span>• All Categories ▾</span>
+            </div>
+            <div class="st-filter-pill" onclick="showToast('Sorted by Lowest APR')">
+              <span>• Lowest APR ▾</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==========================================
+             TOP CARDS GRID (3 Loan Cards + 1 Featured Sanction Desk)
+             ========================================== -->
+        <div class="st-cards-grid">
+          <!-- 3 Loan Cards rendered dynamically in #topCardsContainer -->
+          <div id="topCardsContainer" style="display: contents;"></div>
+
+          <!-- Featured Digital Sanction Card -->
+          <div id="promoCardContainer" style="display: contents;"></div>
+        </div>
+
+        <!-- ==========================================
+             BOTTOM SECTION: "Your Active Loan Portfolio"
+             ========================================== -->
+        <div class="st-bottom-section">
+          <!-- Section Header Bar -->
+          <div class="st-bottom-header">
+            <h2 class="st-bottom-title" id="bottomSectionTitle">Your Active Loan Portfolio</h2>
+
+            <div class="st-header-tools">
+              <button class="st-tool-btn" title="Amortization Schedule" onclick="showToast('Amortization schedule loaded')">📅</button>
+              <a href="apply.html" class="st-tool-btn" title="Apply New Loan" style="text-decoration: none;">＋</a>
+              <button class="st-tool-btn" title="Adjust Parameters" onclick="openModal('calcModal')">🎚️</button>
+              <button class="st-tool-btn" title="More Options" onclick="showToast('Loan servicing actions menu')">•••</button>
+            </div>
+          </div>
+
+          <!-- Showcase Hero Detail Card -->
+          <div class="st-active-showcase">
+            <div class="st-showcase-top">
+              <!-- Left Details -->
+              <div class="st-showcase-left">
+                <div class="st-last-update" id="showcaseLastUpdate">
+                  Synced with MySQL Database 🕒
+                </div>
+
+                <div class="st-asset-main-title" id="showcaseAssetTitle">
+                  Prime Home Loan (APX-HL-8821) 🏡
+                </div>
+
+                <div class="st-metric-label" id="showcaseBalanceSub" style="margin-top: 14px;">
+                  Outstanding Principal Balance
+                </div>
+
+                <div class="st-balance-row">
+                  <div class="st-balance-val" id="showcaseBalanceVal">₹38,45,200</div>
+                  <div class="st-balance-actions">
+                    <button class="st-btn-upgrade" id="btnShowcaseAction1" onclick="handleShowcaseAction1()">
+                      Prepay Principal
+                    </button>
+                    <button class="st-btn-unstake" id="btnShowcaseAction2" onclick="handleShowcaseAction2()">
+                      Sanction Letter
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Timeline Scrubber Widget -->
+              <div class="st-period-widget">
+                <div class="st-period-header">
+                  <div>
+                    <div class="st-period-title" id="periodWidgetTitle">Repayment Schedule</div>
+                    <div class="st-period-sub" id="periodWidgetSub">Remaining Tenure (Months)</div>
+                  </div>
+                  <span class="st-period-end-badge" id="periodEndBadge">60 Month</span>
+                </div>
+
+                <!-- Equalizer Waveform & Scrubber Slider -->
+                <div class="st-timeline-scrubber" id="timelineScrubber">
+                  <div class="st-wave-ticks" id="waveTicksContainer">
+                    <!-- Ticks rendered via stakent.js -->
+                  </div>
+                  <div class="st-scrubber-handle" id="scrubberHandle">
+                    <span>36 Month</span>
+                    <span>⏸</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Showcase Subtabs Row -->
+            <div class="st-subtabs-row">
+              <div class="st-subtab active" data-tab="amortization">
+                Amortization <span>Principal vs Interest</span>
+              </div>
+              <div class="st-subtab" data-tab="statement">
+                Statement <span>Payment history</span>
+              </div>
+              <div class="st-subtab" data-tab="risk">
+                Credit Health <span>CIBIL 785 score</span>
+              </div>
+              <div class="st-subtab" data-tab="reward">
+                Tax Benefits <span>Sec 80C & 24(b)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom 4 Metric Cards Grid -->
+          <div class="st-bottom-metrics-grid" id="bottomMetricsGrid">
+            <!-- 4 Cards rendered via stakent.js -->
+          </div>
+
+          <!-- Live Loan Applications Pipeline from MySQL -->
+          <div style="margin-top: 32px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <h3 style="color: #fff; font-size: 1.25rem; font-weight: 700; margin: 0;">Recent Proposals in Pipeline</h3>
+                <p style="font-size: 0.8rem; color: var(--st-text-secondary); margin: 3px 0 0;">Live loan origination & approval records retrieved directly from MySQL database</p>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <a href="maker.html" class="btn btn-secondary btn-sm" style="border-color: var(--st-cyan); color: var(--st-cyan); text-decoration: none;">+ Maker Desk</a>
+                <a href="checker.html" class="btn btn-secondary btn-sm" style="border-color: var(--st-green); color: var(--st-green); text-decoration: none;">🛡️ Checker Desk</a>
+              </div>
+            </div>
+
+            <div class="data-table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Reference ID</th>
+                    <th>Borrower</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Tenure</th>
+                    <th>Monthly EMI</th>
+                    <th>Status</th>
+                    <th>Originated By</th>
+                    <th style="text-align: right;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="homePipelineBody">
+                  <tr>
+                    <td colspan="9" style="text-align: center; padding: 24px; color: var(--st-text-muted);">
+                      Loading pipeline records from MySQL database...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==========================================
+       MODALS
+       ========================================== -->
+
+  <!-- Interactive EMI Calculator Modal -->
+  <div class="st-modal-overlay" id="calcModal">
+    <div class="st-modal">
+      <div class="st-modal-header">
+        <h3 class="st-modal-title">Live EMI & Loan Calculator</h3>
+        <button class="st-modal-close" onclick="closeModal('calcModal')">✕</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 6px;">
+            <span style="color: var(--st-text-secondary);">Desired Loan Amount</span>
+            <span style="color: #fff; font-weight: 700;" id="modalCalcDisplayAmt">₹5,00,000</span>
+          </div>
+          <input type="range" min="50000" max="10000000" step="25000" value="500000" style="width: 100%; accent-color: var(--st-purple);" id="modalCalcSlider" oninput="updateModalCalc();">
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 6px;">
+            <span style="color: var(--st-text-secondary);">Tenure (Months)</span>
+            <span style="color: #fff; font-weight: 700;" id="modalCalcDisplayTenure">36 Months</span>
+          </div>
+          <input type="range" min="6" max="120" step="6" value="36" style="width: 100%; accent-color: var(--st-purple);" id="modalCalcTenureSlider" oninput="updateModalCalc();">
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 6px;">
+            <span style="color: var(--st-text-secondary);">Interest Rate (p.a.)</span>
+            <span style="color: #fff; font-weight: 700;">10.50%</span>
+          </div>
+        </div>
+
+        <div style="background: #141725; border: 1px solid var(--st-border); padding: 16px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 0.74rem; color: var(--st-text-muted);">Estimated Monthly EMI</div>
+            <div style="font-size: 1.45rem; font-weight: 800; color: #10b981; margin-top: 4px;" id="modalCalcResultEmi">₹16,253 / mo</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.74rem; color: var(--st-text-muted);">Total Payable</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 4px;" id="modalCalcResultPayable">₹5,85,108</div>
+          </div>
+        </div>
+
+        <button class="st-btn-connect-wallet" onclick="closeModal('calcModal'); window.location.href='apply.html?amount='+document.getElementById('modalCalcSlider').value+'&tenure='+document.getElementById('modalCalcTenureSlider').value;">
+          Apply for this Loan Plan ➔
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prepayment & EMI Clearance Modal -->
+  <div class="st-modal-overlay" id="repayModal">
+    <div class="st-modal">
+      <div class="st-modal-header">
+        <h3 class="st-modal-title">Prepay Loan Principal</h3>
+        <button class="st-modal-close" onclick="closeModal('repayModal')">✕</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <p style="font-size: 0.84rem; color: var(--st-text-muted);">
+          Make a partial prepayment directly towards your principal balance with zero prepayment penalty.
+        </p>
+
+        <div>
+          <label style="font-size: 0.78rem; color: var(--st-text-secondary); display: block; margin-bottom: 6px;">Active Loan Facility</label>
+          <div style="background: #141725; border: 1px solid var(--st-border); padding: 10px 14px; border-radius: 12px; font-weight: 700; color: #fff;">
+            Prime Home Loan #APX-HL-8821 (Bal: ₹38,45,200)
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 0.78rem; color: var(--st-text-secondary); display: block; margin-bottom: 6px;">Prepayment Amount (₹)</label>
+          <input type="number" placeholder="e.g. 100000" id="prepayAmountInput" value="100000" style="width: 100%; background: #141725; border: 1px solid var(--st-border); color: #fff; padding: 10px 14px; border-radius: 12px; font-family: inherit; font-size: 0.95rem;">
+        </div>
+
+        <button class="st-btn-connect-wallet" style="margin-top: 6px;" onclick="closeModal('repayModal'); showToast('Prepayment request submitted! ₹1,00,000 adjusted against principal.');">
+          Confirm Payment via Net Banking ➔
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notification -->
+  <div class="st-toast" id="stakentToast"></div>
+
+  <!-- Scripts -->
+  <script src="js/main.js"></script>
+  <script src="js/stakent.js"></script>
+  <script>
+    function updateModalCalc() {
+      const P = parseFloat(document.getElementById('modalCalcSlider').value);
+      const N = parseInt(document.getElementById('modalCalcTenureSlider').value, 10);
+      const R = 10.50;
+
+      document.getElementById('modalCalcDisplayAmt').textContent = '₹' + P.toLocaleString('en-IN');
+      document.getElementById('modalCalcDisplayTenure').textContent = N + ' Months';
+
+      const monthlyRate = (R / 12) / 100;
+      const factor = Math.pow(1 + monthlyRate, N);
+      const emi = Math.round((P * monthlyRate * factor) / (factor - 1));
+      const totalPayable = emi * N;
+
+      document.getElementById('modalCalcResultEmi').textContent = '₹' + emi.toLocaleString('en-IN') + ' / mo';
+      document.getElementById('modalCalcResultPayable').textContent = '₹' + totalPayable.toLocaleString('en-IN');
+    }
+
+    // Load Live MySQL Loan Pipeline into Dashboard
+    async function loadDashboardPipeline() {
+      const tbody = document.getElementById('homePipelineBody');
+      if (!tbody) return;
+
+      try {
+        const res = await fetch('/api/all');
+        const data = await res.json();
+
+        if (data.success && data.data && data.data.length > 0) {
+          tbody.innerHTML = data.data.slice(0, 6).map(loan => `
+            <tr>
+              <td>
+                <a href="track.html?app=${encodeURIComponent(loan.application_number)}" style="color: #fff; font-weight: 700; font-family: var(--st-font-mono); text-decoration: none;">
+                  ${loan.application_number}
+                </a>
+              </td>
+              <td style="color: #fff; font-weight: 600;">${loan.applicant_name}</td>
+              <td>${loan.loan_type}</td>
+              <td style="color: #34d399; font-weight: 700; font-family: var(--st-font-mono);">${formatCurrency(loan.loan_amount)}</td>
+              <td>${loan.tenure_months} Mo</td>
+              <td style="color: #10b981; font-family: var(--st-font-mono);">${formatCurrency(loan.monthly_emi)}</td>
+              <td>
+                <span class="status-pill status-${loan.status}" style="font-size: 0.72rem; padding: 2px 8px;">
+                  ${loan.status.replace(/_/g, ' ')}
+                </span>
+              </td>
+              <td style="font-size: 0.78rem; color: var(--st-text-muted);">${loan.created_by_name || 'David Miller (Maker)'}</td>
+              <td style="text-align: right;">
+                <a href="track.html?app=${encodeURIComponent(loan.application_number)}" class="btn btn-secondary btn-sm" style="font-size: 0.74rem; padding: 3px 10px; text-decoration: none;">
+                  Track ➔
+                </a>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="9" style="text-align: center; padding: 24px; color: var(--st-text-muted);">
+                No loans currently in pipeline. <a href="apply.html" style="color: var(--st-cyan);">Apply for a loan ➔</a>
+              </td>
+            </tr>
+          `;
+        }
+      } catch (err) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" style="text-align: center; padding: 24px; color: var(--st-text-muted);">
+              Connecting to loan database...
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDashboardPipeline();
+    });
+  </script>
+</body>
+</html>

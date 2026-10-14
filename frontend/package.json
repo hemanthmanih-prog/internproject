@@ -1,0 +1,9 @@
+{
+  "name": "apexloan-frontend",
+  "version": "1.0.0",
+  "description": "ApexLoan Client Portal (Maker, Checker & Loan Application UI)",
+  "scripts": {
+    "start": "npx -y serve . -p 3000",
+    "dev": "npx -y serve . -p 3000"
+  }
+}
